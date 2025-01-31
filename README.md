@@ -1,7 +1,7 @@
 # Picta-FDM
 
 <picture>
-  <img src="plugin/logo.png" alt="Picta FDM" style="width:256px;height:256px">
+  <img src="plugin/logo.png" alt="Picta FDM" width="256px" height="256px">
 </picture>
 
 Provides support for downloading videos from [www.picta.cu](https://picta.cu) it is a Add-on for [Free download Manager](https://www.freedownloadmanager.org/).
