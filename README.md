@@ -1,5 +1,7 @@
 # Picta-FDM
 
+![![Picta FDM ]](https://github.com/Spheres-cu/picta-fdm/blob/main/plugin/logo.png?raw=true)
+
 Provides support for downloading videos from [www.picta.cu](https://picta.cu) it is a Add-on for [Free download Manager](https://www.freedownloadmanager.org/).
 
 Based on the plugin [Elephant](https://github.com/meowcateatrat/elephant) and [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Picta.cu
