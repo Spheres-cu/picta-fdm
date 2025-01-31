@@ -1,6 +1,10 @@
 # Picta-FDM
 
-![![Picta FDM ]](https://github.com/Spheres-cu/picta-fdm/blob/main/plugin/logo.png?raw=true)
+<picture>
+  <source media="(max-width:256px)" srcset="/plugin/logo.png">
+  <source media="(max-height:256px)" srcset="/plugin/logo.png">
+  <img src="/plugin/logo.png" alt="Picta FDM" style="width:auto;height:auto">
+</picture>
 
 Provides support for downloading videos from [www.picta.cu](https://picta.cu) it is a Add-on for [Free download Manager](https://www.freedownloadmanager.org/).
 
