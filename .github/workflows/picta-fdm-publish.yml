@@ -1,0 +1,33 @@
+name: Publish Picta-FDM plugin
+
+on:
+  release:
+
+permissions:
+  contents: write  # IMPORTANT: mandatory for making GitHub Releases
+      
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Compress plugin Directory
+        uses: somaz94/compress-decompress@v1
+        with:
+          command: compress
+          source: ./plugin
+          format: zip
+          includeRoot: 'false'
+          
+      - name: Rename plugin
+        run: |
+            mv plugin.zip picta-fdm.fda
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Upload picta-fdm.fda
+          path: dist/picta-fdm.fda
