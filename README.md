@@ -40,4 +40,4 @@ Based on the plugin [Elephant](https://github.com/meowcateatrat/elephant) and [p
 
 1. Python 3.9 or above
    - If you don't have Python installed in your system Free Download Manager get you the option for install it.
-2. Free Download Manager version 6.25.2.xxx or above.
+2. Free Download Manager version 6.26.0.6069 or above.
