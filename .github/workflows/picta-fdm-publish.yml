@@ -29,6 +29,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name:
-            ${{ github.workspace }}/plugin/picta-fdm.fda
-          path: dist/
+          name: picta-fdm.fda
+          path: ${{ github.workspace }}/plugin/picta-fdm.fda
