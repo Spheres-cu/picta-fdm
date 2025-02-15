@@ -1,5 +1,9 @@
 # Picta-FDM
 
+![GitHub Release](https://img.shields.io/github/v/release/Spheres-cu/picta-fdm)
+![GitHub License](https://img.shields.io/github/license/Spheres-cu/picta-fdm)
+![GitHub Repo stars](https://img.shields.io/github/stars/Spheres-cu/picta-fdm)
+
 <picture>
   <img src="plugin/logo.png" alt="Picta FDM" width="128px" height="128px">
 </picture>
