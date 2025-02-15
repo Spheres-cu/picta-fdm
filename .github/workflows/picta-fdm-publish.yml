@@ -24,10 +24,10 @@ jobs:
           
       - name: Rename plugin
         run: |
-            mv plugin.zip picta-fdm.fda
+            mv /github/workspace/./plugin/plugin.zip  /github/workspace/./plugin/picta-fdm.fda
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Upload picta-fdm.fda
+          name: /github/workspace/./plugin/picta-fdm.fda
           path: dist/picta-fdm.fda
