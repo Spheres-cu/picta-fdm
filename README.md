@@ -1,7 +1,7 @@
 # Picta-FDM
 
-![GitHub Release](https://img.shields.io/github/v/release/Spheres-cu/picta-fdm)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Spheres-cu/picta-fdm/total)
+![GitHub Release](https://img.shields.io/github/v/release/Spheres-cu/picta-fdm?logo=refinedgithub&logoColor=FFFFFF)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Spheres-cu/picta-fdm/total?logo=artifacthub)
 ![GitHub License](https://img.shields.io/github/license/Spheres-cu/picta-fdm)
 ![GitHub Repo stars](https://img.shields.io/github/stars/Spheres-cu/picta-fdm)
 
