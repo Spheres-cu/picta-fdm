@@ -8,7 +8,7 @@
 ![GitHub License](https://img.shields.io/github/license/Spheres-cu/picta-fdm)
 ![GitHub Repo stars](https://img.shields.io/github/stars/Spheres-cu/picta-fdm)
 
-![Picta-fdm Logo](https://github.com/Spheres-cu/picta-fdm/blob/.pictures/logo-miniaturas.png?raw=true)
+![Picta-fdm Logo](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/logo-miniaturas.png?raw=true)
 
 Provides support for downloading videos from [www.picta.cu](https://picta.cu) it is a Add-on for [Free download Manager](https://www.freedownloadmanager.org/).
 
