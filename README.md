@@ -4,7 +4,7 @@
 [![es leeme](https://img.shields.io/badge/readme-es-brightgreen?logo=readme&logoColor=brightgreen&label=leeme)](https://github.com/Spheres-cu/picta-fdm/blob/main/README.es.md#picta-fdm)
 
 ![GitHub Release](https://img.shields.io/github/v/release/Spheres-cu/picta-fdm?logo=refinedgithub&logoColor=FFFFFF)
-![GitHub Downloads (all assets, all releases)(https://img.shields.io/badge/downloads-green?logo=github&logoColor=1f1f23&labelColor=fbfbfb&color=brightblue)](https://img.shields.io/github/downloads/Spheres-cu/picta-fdm/total?logo=artifacthub)
+![GitHub Downloads (all assets, all releases)(https://img.shields.io/badge/downloads-green?logo=github&logoColor=1f1f23&labelColor=fbfbfb&color=brightblue)](https://img.shields.io/github/downloads/Spheres-cu/picta-fdm/total)
 ![GitHub License](https://img.shields.io/github/license/Spheres-cu/picta-fdm)
 ![GitHub Repo stars](https://img.shields.io/github/stars/Spheres-cu/picta-fdm)
 
