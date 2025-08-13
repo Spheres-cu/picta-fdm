@@ -6,7 +6,7 @@ import xml.etree.ElementTree
 
 from .common import InfoExtractor  # isort: split
 from .commonprotocols import RtmpIE
-#from .youtube import YoutubeIE
+from .youtube import YoutubeIE
 from ..compat import compat_etree_fromstring
 from ..utils import (
     KNOWN_EXTENSIONS,

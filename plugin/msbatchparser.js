@@ -13,22 +13,91 @@ var msBatchVideoParser = (function()
             return msAbstractParser.parse(obj, [])
             .then(function(res)
             {
-                if (res.hasOwnProperty("entries"))
+                return new Promise(function(resolve, reject)
                 {
-                    for (let i = res.entries.length - 1; i >= 0; --i)
+                    var Thumbnails = [];
+                    var entries = [];
+                    var playlist = {};
+
+                    try
                     {
-                        if (!res.entries[i].hasOwnProperty("title"))
-                            continue;
-                        if (res.entries[i].title === "[Deleted video]" ||
-                                res.entries[i].title === "[Private video]")
+                        if (res?.hasOwnProperty("entries"))
                         {
-                            res.entries.splice(i, 1);
+                            for (let i = 0; i <= res.entries.length; ++i)
+                            {
+                                if (res.entries[i] != null)
+                                {
+                                    if (!res.title && res.entries[i].playlist_channel.nombre) {
+                                        playlist.title = res.entries[i].playlist_channel.nombre;
+                                    }
+
+                                    if (res.entries[i].thumbnail)
+                                    {
+                                        let thumb_url = res.entries[i].thumbnail;
+                                        let height = Math.round(res.entries[i].height / 4);
+                                        let width = Math.round(res.entries[i].width / 4);
+
+                                        let Thumb =
+                                        {
+                                            "url": thumb_url + "_" + width + "x" + height,
+                                            "height": height,
+                                            "width": width,
+                                            "id": i
+                                        };
+
+                                        Thumbnails.push(Thumb);
+                                    }
+                                    entries.push({
+                                        _type: "url",
+                                        url: res.entries[i].webpage_url,
+                                        title: res.entries[i].title
+                                    });
+                                }
+                            }
+                            playlist._type = res._type;
+                            playlist.id = res.id;
+                            playlist.webpage_url = res.webpage_url;
+                            playlist.thumbnails = Thumbnails;
+                            playlist.entries = entries;
                         }
+                        else if (res)
+                        {
+                            entries.push({
+                                _type: "url",
+                                url: res.webpage_url,
+                                title: res.title
+                            });
+
+                            let thumb_url = res.thumbnail;
+                            if (thumb_url)
+                            {
+                                let height = Math.round(res.height / 4);
+                                let width = Math.round(res.width / 4);
+
+                                Thumbnails = [
+                                {
+                                    "url": thumb_url + "_" + width + "x" + height,
+                                    "height": height,
+                                    "width": width
+                                }
+                                ];
+                            }
+
+                            playlist._type = "playlist";
+                            playlist.id = res.id;
+                            playlist.title = res.title;
+                            playlist.webpage_url = res.webpage_url;
+                            playlist.thumbnails = Thumbnails;
+                            playlist.entries = entries;
+                        }
+                        console.log("Playlist results: ", JSON.stringify(playlist, null, " "));
+                        resolve(playlist);
                     }
-                    // var Entries_values = JSON.stringify(res.entries, null, "  ")
-                    // console.log("Entries_values: ", Entries_values)
-                }
-                return res;
+                    catch (e)
+                    {
+                        reject({error: e.message, isParseError:true});
+                    }
+                });
             });
         },
 
@@ -36,13 +105,14 @@ var msBatchVideoParser = (function()
 
         supportedSourceCheckPriority: function()
         {
-            // we need to parse as a playlist at first
             return msAbstractParser.supportedSourceCheckPriority() + 1;
         },
-
+ 
         isPossiblySupportedSource: msAbstractParser.isPossiblySupportedSource,
 
-        overrideUrlPolicy: msAbstractParser.overrideUrlPolicy
+        overrideUrlPolicy: msAbstractParser.overrideUrlPolicy,
+
+        minIntevalBetweenQueryInfoDownloads: msAbstractParser.minIntevalBetweenQueryInfoDownloads
     };
 
     return new MsBatchVideoParser();

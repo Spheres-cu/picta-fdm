@@ -3,12 +3,13 @@
   "author": "https://github.com/Spheres-cu",
   "name": "Picta",
   "description": "Proporciona soporte para la descarga de videos desde el sitio www.picta.cu.",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "icon": "logo.png",
   "mediaParser": true,
   "mediaListParser": true,
-  "minApiVersion": 4,
+  "minApiVersion": 6,
   "minFeaturesLevel": 2,
+  "targetApiVersion": 6,
   "dependencies": {
     "Python": {"minVersion": "3.9"}
   },
@@ -19,7 +20,7 @@
     "msabstractparser.js",
     "msparser.js",
     "msbatchparser.js",
-    "tools.js"
+    "utils.js"
   ],
   "updateUrl": "https://raw.githubusercontent.com/Spheres-cu/picta-fdm/refs/heads/main/update.json"
 }

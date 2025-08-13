@@ -1,7 +1,8 @@
+from typing import Dict, Any
+
 from base64 import b64encode
 import re
 import math
-
 from ..compat import compat_str, compat_HTTPError
 from ..utils import (
     float_or_none,
@@ -14,15 +15,18 @@ from ..utils import (
     ExtractorError,
     base_url,
     determine_ext,
+    urlencode_postdata,
 )
 from .common import InfoExtractor
 
 ROOT_BASE_URL = "https://www.picta.cu/"
 API_BASE_URL = "https://api.picta.cu/v2/"
-
+API_CLIENT_ID = "ebkU3YeFu3So9hesQHrS8AZjEa4v7TiYbS5QZIgO"
+API_TOKEN_URL = "https://api.picta.cu/o/token/"
 
 # noinspection PyAbstractClass
 class PictaBaseIE(InfoExtractor):
+   
     @staticmethod
     def _extract_video(video, video_id=None, require_title=True):
         if len(video["results"]) == 0:
@@ -70,7 +74,6 @@ class PictaBaseIE(InfoExtractor):
             "playlist_channel": playlist_channel,
             "subtitle_url": subtitle_url,
         }
-
 
 # noinspection PyAbstractClass
 class PictaIE(PictaBaseIE):
@@ -155,7 +158,36 @@ class PictaIE(PictaBaseIE):
 
     def _real_initialize(self):
         self.playlist_id = None
+        # Fetch credentials (e.g., from netrc or user input)
+        username, password = self._get_login_info()
+        if not username or not password:
+            raise self.raise_login_required(msg="Login credentials needed")
+        
+        self._access_token = self._get_access_token(username, password)
+        self._HEADERS = {"Authorization": f"Bearer {self._access_token}"}
 
+    def _get_access_token(self, username, password):
+        data =urlencode_postdata( {
+            "grant_type": "password",
+            "client_id": API_CLIENT_ID,
+            "client_secret": "",
+            "username": username,
+            "password": password,
+        })
+        
+        token_response = self._download_json(
+            API_TOKEN_URL, None,
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            fatal=True,  # Crash if token fetch fails
+        )
+
+        if not token_response or 'access_token' not in token_response:
+            self._downloader.report_error("Failed to fetch access token")
+            return None
+        
+        return token_response['access_token']
+    
     @classmethod
     def _match_playlist_id(cls, url):
         if "_VALID_URL_RE" not in cls.__dict__:
@@ -181,7 +213,7 @@ class PictaIE(PictaBaseIE):
                 )
             sub_lang_list[lang] = sub_formats
         if not sub_lang_list:
-            self._downloader.report_warning("video doesn't have subtitles")
+            self.report_warning("video doesn't have subtitles")
             return {}
         return sub_lang_list
 
@@ -375,7 +407,7 @@ class PictaIE(PictaBaseIE):
                             else None
                         )
                         bandwidth = int_or_none(representation_attrib.get("bandwidth"))
-                        f = {
+                        f:Dict[str, Any] = {
                             "format_id": "%s-%s" % (mpd_id, representation_id)
                             if mpd_id
                             else representation_id,
@@ -393,7 +425,7 @@ class PictaIE(PictaBaseIE):
                             else None,
                             "format_note": "DASH %s" % content_type,
                             "filesize": filesize,
-                            "container": mimetype2ext(mime_type) + "_dash",
+                            "container": f'{mimetype2ext(mime_type)}' + "_dash",
                         }
                         f.update(parse_codecs(representation_attrib.get("codecs")))
                         representation_ms_info = extract_multisegment_info(
@@ -621,12 +653,13 @@ class PictaIE(PictaBaseIE):
                             "Unknown MIME type %s in DASH manifest" % mime_type
                         )
         return formats
-
+    
     def _real_extract(self, url):
         playlist_id = None
         video_id = self._match_id(url)
         json_url = API_BASE_URL + "publicacion/?format=json&slug_url_raw=%s" % video_id
-        video = self._download_json(json_url, video_id, "Downloading video JSON")
+        video = self._download_json(json_url, video_id, "Downloading video JSON", headers=self._HEADERS)
+
         info = self._extract_video(video, video_id)
         if (
             info["playlist_channel"]
@@ -759,7 +792,7 @@ class PictaEmbedIE(InfoExtractor):
 
 
 # noinspection PyAbstractClass
-class PictaPlaylistIE(InfoExtractor):
+class PictaPlaylistIE(PictaIE):
     API_PLAYLIST_ENDPOINT = API_BASE_URL + "lista_reproduccion_canal/"
     IE_NAME = "picta:playlist"
     IE_DESC = "Picta playlist"
@@ -777,26 +810,7 @@ class PictaPlaylistIE(InfoExtractor):
         m = cls._VALID_URL_RE.match(url)
         assert m
         return m.group("playlist_id")
-
-    def _set_auth_basic(self):
-        header = {}
-        username, password = self._get_login_info()
-        if username is None:
-            return header
-
-        if isinstance(username, str):
-            username = username.encode("latin1")
-
-        if isinstance(password, str):
-            password = password.encode("latin1")
-
-        authstr = "Basic " + compat_str(
-            b64encode(b":".join((username, password))).decode("utf-8")
-        )
-
-        header["Authorization"] = authstr
-        return header
-
+    
     def _extract_playlist(self, playlist, playlist_id=None, require_title=True):
         if len(playlist.get("results", [])) == 0:
             raise ExtractorError("Cannot find playlist!")
@@ -819,11 +833,10 @@ class PictaPlaylistIE(InfoExtractor):
 
     def _entries(self, playlist_id):
         json_url = self.API_PLAYLIST_ENDPOINT + "?format=json&id=%s" % playlist_id
-        headers = self._set_auth_basic()
         playlist = {}
         try:
             playlist = self._download_json(
-                json_url, playlist_id, "Downloading playlist JSON", headers=headers
+                json_url, playlist_id, "Downloading playlist JSON", headers=self._HEADERS
             )
             assert playlist.get("count", 0) >= 1
         except ExtractorError as e:
@@ -872,9 +885,8 @@ class PictaChannelPlaylistIE(PictaPlaylistIE):
         },
     }
 
-
 # noinspection PyAbstractClass
-class PictaUserPlaylistIE(PictaPlaylistIE, PictaBaseIE):
+class PictaUserPlaylistIE(PictaPlaylistIE):
     API_PLAYLIST_ENDPOINT = API_BASE_URL + "lista_reproduccion/"
     IE_NAME = "picta:user:playlist"
     IE_DESC = "Picta user playlist"
@@ -899,12 +911,11 @@ class PictaUserPlaylistIE(PictaPlaylistIE, PictaBaseIE):
         )
         thumbnail = None
         entries = try_get(playlist, lambda x: x["results"][0]["publicacion"])
-
         # Playlist User need update slug_url video
         for entry in entries:
             video_id = entry.get("id")
             json_url = API_BASE_URL + "publicacion/?format=json&id=%s" % video_id
-            video = self._download_json(json_url, video_id, "Downloading video JSON")
+            video = self._download_json(json_url, video_id, "Downloading video JSON", headers=self._HEADERS)
             info = self._extract_video(video, video_id)
             entry["slug_url"] = info.get("slug_url")
 

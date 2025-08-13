@@ -11,16 +11,13 @@ var msAbstractParser = (function()
             console.log("parsing...");
 
             let args = [];
-            let tmpCookies;
             let systemUserAgent;
-            //let systemBrowser;
             
             try
             {
                 systemUserAgent = qtJsSystem.defaultUserAgent;
-                // systemBrowser = qtJsSystem.defaultWebBrowser;
             }
-            catch(e) {}
+            catch (e) {}
 
             let proxyUrl = qtJsNetworkProxyMgr.proxyForUrl(obj.url).url();
             if (proxyUrl)
@@ -29,14 +26,7 @@ var msAbstractParser = (function()
                 args.push("--proxy", proxyUrl);
             }
 
-            args.push("-J", "--flat-playlist", "--no-warnings");
-            
-            if (obj.cookies && obj.cookies.length)
-            {
-                tmpCookies = qtJsTools.createTmpFile("request_" + obj.requestId + "_cookies");
-                if (tmpCookies && tmpCookies.writeText(cookiesToNetscapeText(obj.cookies)))
-                    args.push("--cookies", tmpCookies.path);
-            }
+            args.push("-J", "--no-warnings");
 
             let userAgent = obj.userAgent || systemUserAgent;
             if (userAgent)
@@ -50,82 +40,63 @@ var msAbstractParser = (function()
             return launchPythonScript(obj.requestId, obj.interactive, "picta-dl/picta_dl/__main__.py", args)
             .then(function(obj)
             {
-                console.log("Python result: ", obj.output);
+                Pythonlogs(obj);
 
                 return new Promise(function (resolve, reject)
                 {
-                    var output = obj.output.trim();
-                    if (!output || output[0] !== '{')
-                    {   try 
+                    let output = obj.output.trim();
+                    let isUnsupportedFormat = /http_dash_segments\+http_dash_segments/.test(output);
+                    let isPlaylist = /\"_type\"\:\s*\"playlist\"/.test(output);
+
+                    try
+                    {
+                        if (!output || output[0] !== '{')
                         {
                             var isUnsupportedUrl = /ERROR:\s*\[generic\]\s*Unsupported URL:/.test(output);
                         }
-                        catch(e){}
-                        reject({
-                                error: isUnsupportedUrl ? "Unsupported URL" : "Parse error:" + e.message,
-                                isParseError: !isUnsupportedUrl
-                            });
-                    }
-                    else
+
+                        if (isUnsupportedFormat && !isPlaylist)
+                        {
+                            console.log("Is Unsupported Format: ", isUnsupportedFormat);
+                            reject({error: "Unsupported Format", isParseError: false})
+                        }
+                    }   
+                    catch(e)
                     {
-                        var myObj = JSON.parse(output);
-
-                        var sub_url = myObj.subtitle_url;
-                        if (sub_url) {
-                            let Subtitles = {
-                                "name": "Spanish",
-                                "url": sub_url,
-                                "ext": "srt"
-                            };
-                            myObj.subtitles = {"es": [Subtitles]};
-                            // console.log("Subtitles: ", Object.values(myObj.subtitles.es[0]))
-                        }
-
-                        var thumb_url = myObj.thumbnail;
-                        if (thumb_url) {
-                            let Thumbnails = [
-                                {"url": myObj.thumbnail + "_100x150",
-                                "height": "150",
-                                "width": "100"
-                                }
-                            ]
-                            myObj.thumbnails = Thumbnails;
-                            // console.log("Thumbnails: ", Object.values(myObj.thumbnails[0]))
-                        }
-                        
-                        resolve(myObj);
+                        let ErrorMessage = "Parse error:" + e.message;
+                        reject({
+                            error: isUnsupportedUrl ? "Unsupported URL" : ErrorMessage,
+                            isParseError: !isUnsupportedUrl
+                        });
                     }
+                    resolve(JSON.parse(output));
                 });
             });
         },
 
         isSupportedSource: function(url)
         {
-            return false;
+            return /^https?:\/\/(?:www\.)?picta\.cu\/(?:medias|movie|embed)\/(?:\?v=)?(?<id>[\da-z-]+)(?:\?playlist=(?<playlist_id>[\da-z-]+))?/i.test(url);
         },
 
         supportedSourceCheckPriority: function()
         {
-            return 1010;
+            return 65534;
         },
 
         isPossiblySupportedSource: function(obj)
         {
-			if (!obj.url.includes('picta.cu'))
-				return false;
-            if (obj.contentType && !/^text\/html(;.*)?$/.test(obj.contentType))
-                return false;
-            if (obj.resourceSize !== -1 &&
-                    (obj.resourceSize === 0 || obj.resourceSize > 3*1024*1024))
-            {
-                return false;
-            }
-            return /^https?:\/\//.test(obj.url);
+            return false;
         },
 
         overrideUrlPolicy: function(url)
         {
             return true;
+        },
+
+        minIntevalBetweenQueryInfoDownloads: function()
+        {
+            return 500;
         },
     };
 
