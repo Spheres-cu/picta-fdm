@@ -60,7 +60,7 @@ Basado en el complemento elefante y el descargador de video Picta-DL para Picta.
 
 4. Pegue el enlace a FDM.
 
-5. Seleccione qué descargar y en qué parte de la descarga de Windows de FDM.
+5. Seleccione los archivos a descargar y dónde descargarlos.
 
 Disfrútala!
 
