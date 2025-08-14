@@ -22,6 +22,11 @@ jobs:
         run: |
             mv ${{ github.workspace }}/plugin/plugin.zip ${{ github.workspace }}/plugin/picta-fdm.fda
   github-release:
+    name: Sign the plugin with Sigstore and upload to GitHub Release
+    
+    needs:
+      - build_plugin
+    
     runs-on: ubuntu-latest
 
     permissions:
