@@ -12,7 +12,7 @@
 
 Proporciona soporte para descargar videos de [www.picta.cu](https://picta.cu) es un complemento para [Free download Manager](https://www.freedownloadmanager.org/).
 
-Basado en el complemento elefante y el descargador de video Picta-DL para Picta.cu
+Basado en el complemento [Elephant](https://github.com/meowcateatrat/elephant) y [picta-dl](https://github.com/oleksis/picta-dl)  descargador de videos para Picta.cu
 
 ## Instalación
 
