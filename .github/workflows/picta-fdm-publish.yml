@@ -1,13 +1,13 @@
 name: Publish Picta-FDM plugin
 
 on:
-  release:
+  push:
 
 permissions:
   contents: write  # IMPORTANT: mandatory for making GitHub Releases
       
 jobs:
-  build_and_release:
+  build_plugin:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,12 +25,18 @@ jobs:
       - name: Rename plugin
         run: |
             mv ${{ github.workspace }}/plugin/plugin.zip ${{ github.workspace }}/plugin/picta-fdm.fda
+  github-release:
+      - name: Sign the plugin with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
+        with:
+          input:
+            ${{ github.workspace }}/plugin/picta-fdm.fda
 
       - name: Upload plugin to GitHub Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run:
           gh release upload
-          '${{ github.ref_name }}' ${{ github.workspace }}/plugin/picta-fdm.fda
+          '${{ github.ref_name }}' ${{ github.workspace }}/plugin/picta-fdm.*
           --clobber
           --repo '${{ github.repository }}'
