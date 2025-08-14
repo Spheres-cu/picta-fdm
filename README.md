@@ -50,7 +50,7 @@ Based on the plugin [Elephant](https://github.com/meowcateatrat/elephant) and [p
 
 ## Usage
 
-1. Enter to <https://www.picta.cu> with your account
+1. Enter to [www.picta.cu](https://www.picta.cu) with your account
 2. Search for the content you wish to download.
 3. Copy a link of the video of your choose.
 4. Paste the link in to FDM.

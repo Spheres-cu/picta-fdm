@@ -52,7 +52,7 @@ Basado en el complemento elefante y el descargador de video Picta-DL para Picta.
 
 ## Forma de Uso
 
-1. Ingrese a <https://www.picta.cu> con su cuenta.
+1. Ingrese a [www.picta.cu](https://www.picta.cu) con su cuenta.
 
 2. Busque el contenido que desea descargar.
 
