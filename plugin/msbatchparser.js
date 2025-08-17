@@ -33,13 +33,21 @@ var msBatchVideoParser = (function()
 
                                     if (res.entries[i].thumbnail)
                                     {
+                                        let height = res.entries[i].height;
+                                        let width = res.entries[i].width;
                                         let thumb_url = res.entries[i].thumbnail;
-                                        let height = Math.round(res.entries[i].height / 4);
-                                        let width = Math.round(res.entries[i].width / 4);
+
+                                        if (!height || !width) {
+                                            height = 100;
+                                            width = 150;
+                                        } else {
+                                            height = Math.round(height / 4);
+                                            width = Math.round(width / 4);
+                                        }
 
                                         let Thumb =
                                         {
-                                            "url": thumb_url + "_" + width + "x" + height,
+                                            "url": thumb_url + "_" + height + "x" + width,
                                             "height": height,
                                             "width": width,
                                             "id": i

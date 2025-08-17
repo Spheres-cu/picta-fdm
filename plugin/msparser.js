@@ -35,12 +35,19 @@ var msParser = (function()
                     let thumb_url = myObj.thumbnail;
                     if (thumb_url)
                     {
-                        let height = Math.round(myObj.height / 4);
-                        let width = Math.round(myObj.width / 4);
+                        let height = myObj.height;
+                        let width = myObj.width;
+                        if (!height || !width) {
+                            height = 100;
+                            width = 150;
+                        } else {
+                            height = Math.round(height / 4);
+                            width = Math.round(width / 4);
+                        }
 
                         let Thumbnails = [
                         {
-                            "url": thumb_url + "_" + width + "x" + height,
+                            "url": thumb_url + "_" + height + "x" + width,
                             "height": height,
                             "width": width
                         }
