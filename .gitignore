@@ -2,4 +2,3 @@ MANIFEST
 __pycache__/
 update.json
 .pictures
-/plugin/signature.dat
