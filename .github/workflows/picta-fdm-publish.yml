@@ -27,7 +27,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: plugin-package-distributions
-        path: dist/${{ github.workspace }}/plugin/picta-fdm.fda
+        path: ${{ github.workspace }}/plugin/picta-fdm.fda
 
   github-release:
     name: Upload plugin to GitHub Release
