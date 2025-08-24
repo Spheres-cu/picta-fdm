@@ -28,9 +28,6 @@ jobs:
       with:
         name: plugin-package-distributions
         path: ${{ github.workspace }}/plugin/picta-fdm.fda
-    
-    - name: Check plugin storage
-      run: ls -R dist/
 
   github-release:
     name: Upload plugin to GitHub Release
