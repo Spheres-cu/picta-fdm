@@ -10,12 +10,11 @@ var msBatchVideoParser = (function()
 
         parse: function (obj)
         {
-            return msAbstractParser.parse(obj, [])
+            return msAbstractParser.parse(obj, ["--flat-playlist"])
             .then(function(res)
             {
                 return new Promise(function(resolve, reject)
                 {
-                    var Thumbnails = [];
                     var entries = [];
                     var playlist = {};
 
@@ -25,55 +24,32 @@ var msBatchVideoParser = (function()
                         {
                             for (let i = 0; i <= res.entries.length; ++i)
                             {
-                                if (res.entries[i] != null)
+                                if (res.entries[i])
                                 {
-                                    if (!res.title && res.entries[i].playlist_channel.nombre) {
-                                        playlist.title = res.entries[i].playlist_channel.nombre;
-                                    }
-
-                                    if (res.entries[i].thumbnail)
-                                    {
-                                        let height = res.entries[i].height;
-                                        let width = res.entries[i].width;
-                                        let thumb_url = res.entries[i].thumbnail;
-
-                                        if (!height || !width) {
-                                            height = 100;
-                                            width = 150;
-                                        } else {
-                                            height = Math.round(height / 4);
-                                            width = Math.round(width / 4);
-                                        }
-
-                                        let Thumb =
-                                        {
-                                            "url": thumb_url + "_" + height + "x" + width,
-                                            "height": height,
-                                            "width": width,
-                                            "id": i
-                                        };
-
-                                        Thumbnails.push(Thumb);
-                                    }
-                                    entries.push({
-                                        _type: "url",
-                                        url: res.entries[i].webpage_url,
-                                        title: res.entries[i].title
-                                    });
+                                    res.entries[i].duration = res.entries[i].kwargs.duration;
                                 }
                             }
-                            playlist._type = res._type;
-                            playlist.id = res.id;
-                            playlist.webpage_url = res.webpage_url;
-                            playlist.thumbnails = Thumbnails;
-                            playlist.entries = entries;
+
+                            let thumb_url = res.kwargs.thumbnail;
+                            if (thumb_url) {
+                                let Thumb = [
+                                {
+                                    "url": thumb_url + "_" + 1280 + "x" + 720,
+                                    "height": 720,
+                                    "width": 1280
+                                }];
+                                res.thumbnails = Thumb;
+                            }
+
+                            playlist = res;
                         }
                         else if (res)
                         {
                             entries.push({
                                 _type: "url",
                                 url: res.webpage_url,
-                                title: res.title
+                                title: res.title,
+                                duration: res.duration
                             });
 
                             let thumb_url = res.thumbnail;
