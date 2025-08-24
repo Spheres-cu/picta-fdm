@@ -1,36 +1,55 @@
 name: Publish Picta-FDM plugin
 
-on:
-  release:
-
-permissions:
-  contents: write  # IMPORTANT: mandatory for making GitHub Releases
+on: push
       
 jobs:
-  build_and_release:
+  build_plugin:
+    name: Build plugin distribution 📦
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-      
-      - name: Compress plugin Directory
-        uses: somaz94/compress-decompress@v1
-        with:
-          command: compress
-          source: ./plugin
-          format: zip
-          includeRoot: 'false'
-          
-      - name: Rename plugin
-        run: |
-            mv ${{ github.workspace }}/plugin/plugin.zip ${{ github.workspace }}/plugin/picta-fdm.fda
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-      - name: Upload plugin to GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run:
-          gh release upload
-          '${{ github.ref_name }}' ${{ github.workspace }}/plugin/picta-fdm.fda
-          --clobber
-          --repo '${{ github.repository }}'
+    - name: Compress plugin Directory
+      uses: somaz94/compress-decompress@v1
+      with:
+        command: compress
+        source: ./plugin
+        format: zip
+        includeRoot: 'false'
+        
+    - name: Rename plugin
+      run: |
+          mv ${{ github.workspace }}/plugin/plugin.zip ${{ github.workspace }}/plugin/picta-fdm.fda
+
+    - name: Store the plugin package
+      uses: actions/upload-artifact@v4
+      with:
+        name: plugin-package-distributions
+        path: dist/${{ github.workspace }}/plugin/picta-fdm.fda
+
+  github-release:
+    name: Upload plugin to GitHub Release
+    needs:
+      - build_plugin
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # IMPORTANT: mandatory for making GitHub Releases
+    
+    steps:
+    - name: Download plugin dists
+      uses: actions/download-artifact@v4
+      with:
+        name: picta-fdm.fda
+        path: dist/
+  
+    - name: Upload artifact to GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run:
+        gh release upload
+        '${{ github.ref_name }}' dist/picta-fdm.fda
+        --clobber
+        --repo '${{ github.repository }}'
