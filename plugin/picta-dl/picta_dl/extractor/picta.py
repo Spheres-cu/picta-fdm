@@ -855,6 +855,7 @@ class PictaPlaylistIE(PictaIE):
 
         info_playlist = self._extract_playlist(playlist, playlist_id)
         playlist_entries = info_playlist.get("entries")
+        entries: Dict[str, Any] = {}
         for video in playlist_entries:
             video_id = video.get("id")
             video_url = (
@@ -867,18 +868,20 @@ class PictaPlaylistIE(PictaIE):
             )
             video_title = video.get("nombre")
             duration = parse_duration(video.get("duracion"))
-            yield self.url_result(video_url, PictaIE.ie_key(), video_id, video_title, kwargs={'duration': duration})
+            entries = self.url_result(video_url, PictaIE.ie_key(), video_id, video_title)
+            entries['duration'] = duration
+            yield entries
 
     def _real_extract(self, url):
         playlist = {}
+        info_playlist: Dict[str, Any] = {}
         playlist_id = self._match_playlist_id(url)
         entries = self._entries(playlist_id)
         json_url = self.API_PLAYLIST_ENDPOINT + "?format=json&id=%s" % playlist_id
         playlist = self._download_json(
             json_url, playlist_id, "Downloading playlist JSON", headers=self._HEADERS
         )
-        info_playlist = self._extract_playlist(playlist, playlist_id)
-        playlist_title = info_playlist.get('title')
+        info = self._extract_playlist(playlist, playlist_id)
 
         video_id = self._match_id(url)
         json_slug_url = API_BASE_URL + "publicacion/?format=json&slug_url_raw=%s" % video_id
@@ -897,7 +900,9 @@ class PictaPlaylistIE(PictaIE):
                 video,
                 lambda x: x["results"][0]["categoria"]["pelicula"]["imagen_secundaria"])
 
-        return self.playlist_result(entries, playlist_id, playlist_title, kwargs={"thumbnail": thumbnail})
+        info_playlist = self.playlist_result(entries, playlist_id, info.get('title'))
+        info_playlist['thumbnail'] = thumbnail
+        return info_playlist
 
 
 # noinspection PyAbstractClass
