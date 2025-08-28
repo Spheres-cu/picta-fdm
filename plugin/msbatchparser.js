@@ -22,15 +22,15 @@ var msBatchVideoParser = (function()
                     {
                         if (res?.hasOwnProperty("entries"))
                         {
-                            for (let i = 0; i <= res.entries.length; ++i)
-                            {
-                                if (res.entries[i])
-                                {
-                                    res.entries[i].duration = res.entries[i].kwargs.duration;
-                                }
-                            }
+                            // for (let i = 0; i <= res.entries.length; ++i)
+                            // {
+                            //     if (res.entries[i])
+                            //     {
+                            //         res.entries[i].duration = res.entries[i].duration;
+                            //     }
+                            // }
 
-                            let thumb_url = res.kwargs.thumbnail;
+                            let thumb_url = res.thumbnail;
                             if (thumb_url) {
                                 let Thumb = [
                                 {
@@ -55,15 +55,30 @@ var msBatchVideoParser = (function()
                             let thumb_url = res.thumbnail;
                             if (thumb_url)
                             {
+
                                 let height = Math.round(res.height / 4);
                                 let width = Math.round(res.width / 4);
 
-                                Thumbnails = [
+                                var Thumbnails = [
                                 {
                                     "url": thumb_url + "_" + width + "x" + height,
                                     "height": height,
-                                    "width": width
+                                    "width": width,
+                                    "preference": 3
+                                },
+                                {
+                                    "url": thumb_url + "_" + 220 + "x" + 180,
+                                    "height": 180,
+                                    "width": 220,
+                                    "preference": 2
+                                },
+                                {
+                                    "url": thumb_url + "_" + 180 + "x" + 220,
+                                    "height": 180,
+                                    "width": 220,
+                                    "preference": 1
                                 }
+                            
                                 ];
                             }
 
@@ -74,7 +89,7 @@ var msBatchVideoParser = (function()
                             playlist.thumbnails = Thumbnails;
                             playlist.entries = entries;
                         }
-                        console.log("Playlist results: ", JSON.stringify(playlist, null, " "));
+                        // console.log("Playlist results: ", JSON.stringify(playlist, null));
                         resolve(playlist);
                     }
                     catch (e)

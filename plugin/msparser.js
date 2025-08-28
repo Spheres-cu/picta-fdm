@@ -42,10 +42,25 @@ var msParser = (function()
 
                         let Thumbnails = [
                         {
-                            "url": thumb_url + "_" + height + "x" + width,
+                            "url": thumb_url + "_" + width + "x" + height,
                             "height": height,
-                            "width": width
-                        }];
+                            "width": width,
+                            "preference": 3
+                        },
+                        {
+                            "url": thumb_url + "_" + 220 + "x" + 180,
+                            "height": 180,
+                            "width": 220,
+                            "preference": 2
+                        },
+                        {
+                            "url": thumb_url + "_" + 180 + "x" + 220,
+                            "height": 180,
+                            "width": 220,
+                            "preference": 1
+                        }
+                    
+                        ];
 
                         myObj.thumbnails = Thumbnails;
                     }
@@ -57,6 +72,7 @@ var msParser = (function()
                         myObj.upload_date = converted.iso8601;
                     }
 
+                    // console.log("Media results: ", JSON.stringify(myObj, null));
                     resolve(myObj);
                 }
                 catch (e)
