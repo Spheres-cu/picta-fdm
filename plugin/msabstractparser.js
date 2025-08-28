@@ -45,7 +45,6 @@ var msAbstractParser = (function()
                 return new Promise(function (resolve, reject)
                 {
                     let output = obj.output.trim();
-                    let isUnsupportedFormat = /http_dash_segments\+http_dash_segments/.test(output);
                     let isPlaylist = /\"_type\"\:\s*\"playlist\"/.test(output);
 
                     try
@@ -53,14 +52,15 @@ var msAbstractParser = (function()
                         if (!output || output[0] !== '{')
                         {
                             var isUnsupportedUrl = /ERROR:\s*\[generic\]\s*Unsupported URL:/.test(output);
+                            var NotFound = /ERROR:\s*\[picta\]\s*.*: HTTP Error 404: Not Found/.test(obj.errorOutput);
                         }
 
-                        if (isUnsupportedFormat && !isPlaylist)
+                        if (!isPlaylist && NotFound)
                         {
-                            console.log("Is Unsupported Format: ", isUnsupportedFormat);
-                            reject({error: "Unsupported Format", isParseError: false})
+                            console.log("Error: File Not Found");
+                            reject({error: "HTTP Error 404: Not Found", isParseError: false})
                         }
-                    }   
+                    }
                     catch(e)
                     {
                         let ErrorMessage = "Parse error:" + e.message;
