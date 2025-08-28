@@ -46,7 +46,7 @@ Based on the plugin [Elephant](https://github.com/meowcateatrat/elephant) and [p
 
 1. Python 3.9 or above
    - If you don't have Python installed in your system Free Download Manager get you the option for install it.
-2. Free Download Manager version 6.29.1.6392 or above.
+2. Free Download Manager version 6.30.0.6422 or above.
 
 ## Usage
 
@@ -74,12 +74,8 @@ Enjoy it !
 
 ## Troubleshooting
 
-### Unsupported format
+### HTTP Error 404: Not Found
 
-There is a problem with the FDM API when downloading audio/video that is in fragments format since it has no support for this type of download.
+Some media playlist can have error like "Not Found". This can be because the content of the media was erase or for some error  when was uploaded to [www.picta.cu](https://www.picta.cu). That case you will see a error message: "Error HTTP Error 404: Not Found"
 
-Some playlist contains media with fragments format (audio/video in parts) this type of format haven't  support in FDM API and you will see an error of "Unsupported format", this problem is in the FDM team TODO list .
-
-You may download the other media in the playlists without problema except for this kind.
-
-![Picta-fdm troubleshooting](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/Unsupported_format.png?raw=true)
+![Picta-fdm troubleshooting](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/HTTP_Error_404_Not_Found.png?raw=true)

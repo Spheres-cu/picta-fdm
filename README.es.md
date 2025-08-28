@@ -48,7 +48,7 @@ Basado en el complemento [Elephant](https://github.com/meowcateatrat/elephant) y
 
     - Si no tiene Python instalado en su sistema, Free Download Manager le da la opción de instalarlo.
 
-2. Free Download Manager versión 6.29.1.6392 o superior.
+2. Free Download Manager versión 6.30.0.6422 o superior.
 
 ## Forma de Uso
 
@@ -80,12 +80,8 @@ Disfrútala!
 
 ## Solución de problemas
 
-### Formato no compatible
+### Error HTTP 404: No encontrado
 
-Hay un problema con la API FDM al descargar audio/video que se encuentra en formato de fragmentos, ya que no tiene soporte para este tipo de descarga.
+Algunas listas de reproducción multimedia pueden mostrar un error como "No encontrado". Esto puede deberse a que se borró el contenido o a algún error al subirlo a [www.picta.cu](https://www.picta.cu). En ese caso, verá el mensaje de error: "Error HTTP 404: No encontrado".
 
-Algunas listas de reproducción contienen medios con formato de fragmentos (audio/video en partes) Este tipo de formato no es compatible con la API FDM y verá un error de "formato no compatible", este problema está en la lista de TODO del equipo FDM.
-
-Puede descargar los otros medios en las listas de reproducción sin problemas, excepto para este tipo.
-
-![Picta-fdm troubleshooting](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/Unsupported_format.png?raw=true)
+![Picta-fdm troubleshooting](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/HTTP_Error_404_Not_Found.png?raw=true)
