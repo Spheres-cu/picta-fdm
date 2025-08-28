@@ -22,14 +22,6 @@ var msBatchVideoParser = (function()
                     {
                         if (res?.hasOwnProperty("entries"))
                         {
-                            // for (let i = 0; i <= res.entries.length; ++i)
-                            // {
-                            //     if (res.entries[i])
-                            //     {
-                            //         res.entries[i].duration = res.entries[i].duration;
-                            //     }
-                            // }
-
                             let thumb_url = res.thumbnail;
                             if (thumb_url) {
                                 let Thumb = [
