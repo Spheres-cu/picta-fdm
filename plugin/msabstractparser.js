@@ -1,27 +1,20 @@
-var msAbstractParser = (function()
-{
-    function MsAbstractParser()
-    {
-    }
+var msAbstractParser = (function() {
+    function MsAbstractParser() {}
 
     MsAbstractParser.prototype = {
 
-        parse: function (obj, customArgs)
-        {
+        parse: function(obj, customArgs) {
             console.log("parsing...");
 
             let args = [];
             let systemUserAgent;
-            
-            try
-            {
+
+            try {
                 systemUserAgent = qtJsSystem.defaultUserAgent;
-            }
-            catch (e) {}
+            } catch (e) {}
 
             let proxyUrl = qtJsNetworkProxyMgr.proxyForUrl(obj.url).url();
-            if (proxyUrl)
-            {
+            if (proxyUrl) {
                 proxyUrl = proxyUrl.replace(/^https:\/\//i, 'http://'); // FDM bug workaround
                 args.push("--proxy", proxyUrl);
             }
@@ -38,64 +31,94 @@ var msAbstractParser = (function()
             args.push(obj.url);
 
             return launchPythonScript(obj.requestId, obj.interactive, "picta-dl/picta_dl/__main__.py", args)
-            .then(function(obj)
-            {
-                Pythonlogs(obj);
+                .then(function(obj) {
+                    Pythonlogs(obj);
 
-                return new Promise(function (resolve, reject)
-                {
-                    let output = obj.output.trim();
-                    let isPlaylist = /\"_type\"\:\s*\"playlist\"/.test(output);
+                    return new Promise(function(resolve, reject) {
+                        let output = obj.output.trim();
+                        let isPlaylist = /\"_type\"\:\s*\"playlist\"/.test(output);
 
-                    try
-                    {
-                        if (!output || output[0] !== '{')
-                        {
-                            var isUnsupportedUrl = /ERROR:\s*\[generic\]\s*Unsupported URL:/.test(output);
-                            var NotFound = /ERROR:\s*\[picta\]\s*.*: HTTP Error 404: Not Found/.test(obj.errorOutput);
+                        try {
+                            if (!output || output[0] !== '{') {
+                                var isUnsupportedUrl = /ERROR:\s*\[generic\]\s*Unsupported URL:/.test(output);
+                                var NotFound = /ERROR:\s*\[picta\]\s*.*: HTTP Error 404: Not Found/.test(obj.errorOutput);
+                                var TimeoutError = /ERROR:\s*\[picta\]\s*.*read operation timed out/.test(obj.errorOutput);
+                            }
+
+                            if (TimeoutError) {
+                                console.log("Error: TimeoutError");
+                                reject({
+                                    error: "Tiempo de espera agotado para la solicitud",
+                                    isParseError: false
+                                })
+                                return;
+                            }
+
+                            if (!isPlaylist) {
+                                if (NotFound) {
+                                    console.log("Error: File Not Found");
+                                    reject({
+                                        error: "Error HTTP 404: No encontrado",
+                                        isParseError: false
+                                    })
+                                    return;
+                                }
+
+                                let myObj = JSON.parse(output);
+                                let sub_url = myObj?.hasOwnProperty("subtitle_url") ? myObj.subtitle_url : undefined;
+                                let headers = {
+                                    method: 'HEAD',
+                                    cache: 'no-store'
+                                };
+
+                                if (sub_url) {
+                                    console.log("Checking subtitle status:", sub_url);
+                                    downloadUrlAsUtf8Text(sub_url, null, headers).then(function(response) {
+                                        if (response && response.error !== "Prohibido") {
+                                            resolve(JSON.parse(output));
+                                        }
+                                    }).catch(function(err) {
+                                        if (err && err.error === "Prohibido") {
+                                            delete myObj.subtitle_url;
+                                            output = JSON.stringify(myObj, null);
+                                            console.log("Subtitle check failed:", "HTTP Error 403: Forbidden");
+                                        } else {
+                                            console.log("Subtitle check failed:", err.error);
+                                        }
+                                        resolve(JSON.parse(output));
+                                    });
+                                    return;
+                                }
+                            }
+                        } catch (e) {
+                            let ErrorMessage = "Parse error: " + e.message;
+                            reject({
+                                error: isUnsupportedUrl ? "Unsupported URL" : ErrorMessage,
+                                isParseError: !isUnsupportedUrl
+                            });
                         }
-
-                        if (!isPlaylist && NotFound)
-                        {
-                            console.log("Error: File Not Found");
-                            reject({error: "HTTP Error 404: Not Found", isParseError: false})
-                        }
-                    }
-                    catch(e)
-                    {
-                        let ErrorMessage = "Parse error:" + e.message;
-                        reject({
-                            error: isUnsupportedUrl ? "Unsupported URL" : ErrorMessage,
-                            isParseError: !isUnsupportedUrl
-                        });
-                    }
-                    resolve(JSON.parse(output));
+                        resolve(JSON.parse(output));
+                    });
                 });
-            });
         },
 
-        isSupportedSource: function(url)
-        {
+        isSupportedSource: function(url) {
             return /^https?:\/\/(?:www\.)?picta\.cu\/(?:medias|movie|embed)\/(?:\?v=)?(?<id>[\da-z-]+)(?:\?playlist=(?<playlist_id>[\da-z-]+))?/i.test(url);
         },
 
-        supportedSourceCheckPriority: function()
-        {
+        supportedSourceCheckPriority: function() {
             return 65534;
         },
 
-        isPossiblySupportedSource: function(obj)
-        {
+        isPossiblySupportedSource: function(obj) {
             return false;
         },
 
-        overrideUrlPolicy: function(url)
-        {
+        overrideUrlPolicy: function(url) {
             return true;
         },
 
-        minIntevalBetweenQueryInfoDownloads: function()
-        {
+        minIntevalBetweenQueryInfoDownloads: function() {
             return 500;
         },
     };
