@@ -7,11 +7,11 @@
   "icon": "logo.png",
   "mediaParser": true,
   "mediaListParser": true,
-  "minApiVersion": 7,
+  "minApiVersion": 8,
   "minFeaturesLevel": 2,
-  "targetApiVersion": 7,
+  "targetApiVersion": 8,
   "dependencies": {
-    "Python": {"minVersion": "3.9"}
+    "Python": {"minVersion": "3.10"}
   },
   "permissions": [
     "launchPython"

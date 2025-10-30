@@ -21,9 +21,26 @@ function convertUploadDate(upload_date) {
   };
 }
 
-// function msToEpochSeconds(ms) {
-//   return Math.floor(ms / 1000);
-// }
+function mapEntries(items) { 
+  if (Array.isArray(items) && items.every(item => item.hasOwnProperty("entries"))) {
+    let entries = [];
+    items
+    .filter(item => item?.hasOwnProperty("title") && !/\bShorts\b/i.test(item.title))
+    .map((item) => {
+      entries = entries.concat(item.entries);
+    });
+    return entries;
+  }
+  return items;
+}
+
+function parseYTentries(entries) {
+  if (Array.isArray(entries)) {
+    let arrays = entries.filter(item => item.hasOwnProperty("title") && !/\[(?:Private|Deleted) video\]/i.test(item.title))
+    return arrays;
+  }
+  return entries;
+}
 
 function Pythonlogs(obj)
 {
@@ -32,49 +49,4 @@ function Pythonlogs(obj)
     
   if (obj.errorOutput)
     console.log("Python Errors: ", obj.errorOutput);
-}
-
-function downloadUrlAsUtf8Text(url, cookies, headers, postData) {
-    cookies = cookies || '';
-    headers = headers || [];
-
-    return new Promise(function(resolve, reject) {
-        // console.log("[downloadUrlAsUtf8Text]: Downloading", url);
-
-        var download = qtJsDownloadsFactory.create();
-
-        download.url = url;
-        download.cookies = cookies;
-        if (typeof(postData) === "string")
-            download.postDataAsUtf8String = postData;
-        else if (postData instanceof ArrayBuffer)
-            download.postData = postData;
-
-        for (var i in headers) {
-          if (headers.hasOwnProperty(i)) {
-            download.setCustomHeader(i, headers[i]);
-          }
-        }
-        
-        download.finished.connect(function() {
-            // console.log("[downloadUrlAsUtf8Text]: Finished downloading", url);
-            var error = download.error;
-
-            if (error) {
-                reject({
-                    error: error,
-                    isParseError: !download.isNetworkError && !download.isInternalError
-                });
-            } else {
-                resolve({
-                    url: url,
-                    body: download.dataAsUtf8Text(),
-                    cookies: download.cookies,
-                    error:error
-                });
-            }
-        });
-
-        download.start();
-    });
 }

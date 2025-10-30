@@ -19,7 +19,7 @@ var msAbstractParser = (function() {
                 args.push("--proxy", proxyUrl);
             }
 
-            args.push("-J", "--no-warnings");
+            args.push("-J");
 
             let userAgent = obj.userAgent || systemUserAgent;
             if (userAgent)
@@ -41,52 +41,47 @@ var msAbstractParser = (function() {
                         try {
                             if (!output || output[0] !== '{') {
                                 var isUnsupportedUrl = /ERROR:\s*\[generic\]\s*Unsupported URL:/.test(output);
-                                var NotFound = /ERROR:\s*\[picta\]\s*.*: HTTP Error 404: Not Found/.test(obj.errorOutput);
-                                var TimeoutError = /ERROR:\s*\[picta\]\s*.*read operation timed out/.test(obj.errorOutput);
+                                var NotFound = /ERROR:\s*\[picta\]\s*.*: (?:Cannot find video!|HTTP Error 404: Not Found)/i.test(obj.errorOutput);
+                                var Forbidden = /ERROR:\s*\[picta\]\s*.*: HTTP Error 403: Forbidden/.test(obj.errorOutput);
+                                var TimeoutError = /ERROR:\s*\[picta\]\s*.*: (?:HTTP Error 408|Read timed out)/i.test(obj.errorOutput);
+                                var BadCredentials = /ERROR:\s*\[picta\]\s*.*: HTTP Error (?:400|401|)/i.test(obj.errorOutput);
+                                var PaidVideo = /ERROR:\s*\[picta\]\s*.*: This video is paid only/i.test(obj.errorOutput);
+                                var isYoutubeUrl = msAbstractParser.isYoutubeSource(obj.url)
+                                var YTNotFound = /ERROR:\s*\[youtube\]\s*\w+:\s*Video unavailable/i.test(obj.errorOutput);
                             }
 
-                            if (TimeoutError) {
-                                console.log("Error: TimeoutError");
+                            if (TimeoutError || BadCredentials) {
+                                let errorMsg = TimeoutError ? "Tiempo de espera agotado" : "Crendenciales no validas, revise usuario y contraseña o netrc (picta)"
                                 reject({
-                                    error: "Tiempo de espera agotado para la solicitud",
+                                    error: errorMsg,
                                     isParseError: false
                                 })
                                 return;
                             }
 
-                            if (!isPlaylist) {
-                                if (NotFound) {
-                                    console.log("Error: File Not Found");
+                            if (YTNotFound) {
+                                let errorMsg = "This video has been removed by the uploader";
+                                console.log("Error:", errorMsg);
+                                reject({
+                                    error: errorMsg,
+                                    isParseError: false                                            
+                                })
+                                return;
+                            }
+
+                            if (!isPlaylist && !isYoutubeUrl) {
+                                if (NotFound || Forbidden || PaidVideo) {
+                                    let errorMsg = new String
+                                    if (PaidVideo) {
+                                        errorMsg = "Este vídeo es sólo por pago"
+                                    } else {
+                                        errorMsg = NotFound ? "Error HTTP 404: No encontrado" : "Error HTTP 403: Prohibido"
+                                    }
+                                    console.log("Error:", errorMsg);
                                     reject({
-                                        error: "Error HTTP 404: No encontrado",
+                                        error: errorMsg,
                                         isParseError: false
                                     })
-                                    return;
-                                }
-
-                                let myObj = JSON.parse(output);
-                                let sub_url = myObj?.hasOwnProperty("subtitle_url") ? myObj.subtitle_url : undefined;
-                                let headers = {
-                                    method: 'HEAD',
-                                    cache: 'no-store'
-                                };
-
-                                if (sub_url) {
-                                    console.log("Checking subtitle status:", sub_url);
-                                    downloadUrlAsUtf8Text(sub_url, null, headers).then(function(response) {
-                                        if (response && response.error !== "Prohibido") {
-                                            resolve(JSON.parse(output));
-                                        }
-                                    }).catch(function(err) {
-                                        if (err && err.error === "Prohibido") {
-                                            delete myObj.subtitle_url;
-                                            output = JSON.stringify(myObj, null);
-                                            console.log("Subtitle check failed:", "HTTP Error 403: Forbidden");
-                                        } else {
-                                            console.log("Subtitle check failed:", err.error);
-                                        }
-                                        resolve(JSON.parse(output));
-                                    });
                                     return;
                                 }
                             }
@@ -103,7 +98,26 @@ var msAbstractParser = (function() {
         },
 
         isSupportedSource: function(url) {
-            return /^https?:\/\/(?:www\.)?picta\.cu\/(?:medias|movie|embed)\/(?:\?v=)?(?<id>[\da-z-]+)(?:\?playlist=(?<playlist_id>[\da-z-]+))?/i.test(url);
+            const SupportedSource = [
+                /^https?:\/\/(?:www\.)?picta\.cu\/(?:medias|movie|embed)\/(?:\?v=)?(?<id>[\da-z-]+)(?:\?playlist=(?<playlist_id>[\da-z-]+))?/i,
+                /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/i,
+                /^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+/i,
+                /^https?:\/\/(?:www\.)?youtube\.com\/channel\/[\w-]+/i,
+                /^https?:\/\/(?:www\.)?youtu\.be\/[\w-]+/i,
+                /^https?:\/\/(?:www\.)?facebook\.com\/[^/]+\/videos\/\d+/i,
+            ];
+            return SupportedSource.some(pattern => pattern.test(url));
+        },
+
+        isYoutubeSource: function(url) {
+            const SupportedSource = [
+                /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/i,
+                /^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+/i,
+                /^https?:\/\/(?:www\.)?youtube\.com\/channel\/[\w-]+/i,
+                /^https?:\/\/(?:www\.)?youtu\.be\/[\w-]+/i,
+                /^https?:\/\/(?:www\.)?facebook\.com\/[^/]+\/videos\/\d+/i
+            ];
+            return SupportedSource.some(pattern => pattern.test(url));
         },
 
         supportedSourceCheckPriority: function() {
