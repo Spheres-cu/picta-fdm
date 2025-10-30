@@ -3,7 +3,7 @@ import urllib.parse
 
 from . import get_suitable_downloader
 from .fragment import FragmentFD
-from ..utils import update_url_query, urljoin
+from ..utils import ReExtractInfo, update_url_query, urljoin
 
 
 class DashSegmentsFD(FragmentFD):
@@ -15,16 +15,24 @@ class DashSegmentsFD(FragmentFD):
     FD_NAME = 'dashsegments'
 
     def real_download(self, filename, info_dict):
-        if info_dict.get('is_live') and set(info_dict['protocol'].split('+')) != {'http_dash_segments_generator'}:
-            self.report_error('Live DASH videos are not supported')
+        if 'http_dash_segments_generator' in info_dict['protocol'].split('+'):
+            real_downloader = None  # No external FD can support --live-from-start
+        else:
+            if info_dict.get('is_live'):
+                self.report_error('Live DASH videos are not supported')
+            real_downloader = get_suitable_downloader(
+                info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
         real_start = time.time()
-        real_downloader = get_suitable_downloader(
-            info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
         requested_formats = [{**info_dict, **fmt} for fmt in info_dict.get('requested_formats', [])]
         args = []
         for fmt in requested_formats or [info_dict]:
+            # Re-extract if --load-info-json is used and 'fragments' was originally a generator
+            # See https://github.com/yt-dlp/yt-dlp/issues/13906
+            if isinstance(fmt['fragments'], str):
+                raise ReExtractInfo('the stream needs to be re-extracted', expected=True)
+
             try:
                 fragment_count = 1 if self.params.get('test') else len(fmt['fragments'])
             except TypeError:

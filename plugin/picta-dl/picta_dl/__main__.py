@@ -1,14 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import unicode_literals
 
 # Execute with
-# $ python picta_dl/__main__.py (2.6+)
-# $ python -m picta_dl          (2.7+)
+# $ python3 picta_dl/__main__.py (3.9+)
+# $ python3 -m picta_dl          (3.9+)
 
-import os, sys
+import sys
 
-if not __package__ and not hasattr(sys, 'frozen'):
+if __package__ is None and not getattr(sys, 'frozen', False):
     # direct call of __main__.py
+    import os.path
     path = os.path.realpath(os.path.abspath(__file__))
     sys.path.insert(0, os.path.dirname(os.path.dirname(path)))
 else:

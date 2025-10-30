@@ -1,14 +1,11 @@
+import datetime as dt
 import os
-import sys
-import warnings
 import xml.etree.ElementTree as etree
 
-from ._deprecated import *  # noqa: F401, F403
 from .compat_utils import passthrough_module
 
-# XXX: Implement this the same way as other DeprecationWarnings without circular import
-passthrough_module(__name__, '._legacy', callback=lambda attr: warnings.warn(
-    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=3))
+passthrough_module(__name__, '._deprecated')
+del passthrough_module
 
 
 # HTMLParseError has been deprecated in Python 3.3 and removed in
@@ -27,36 +24,21 @@ def compat_etree_fromstring(text):
     return etree.XML(text, parser=etree.XMLParser(target=_TreeBuilder()))
 
 
-compat_os_name = os._name if os.name == 'java' else os.name
-
-
-if compat_os_name == 'nt':
-    def compat_shlex_quote(s):
-        import re
-        return s if re.match(r'^[-_\w./]+$', s) else '"%s"' % s.replace('"', '\\"')
-else:
-    from shlex import quote as compat_shlex_quote  # noqa: F401
-
-
 def compat_ord(c):
     return c if isinstance(c, int) else ord(c)
 
 
-if compat_os_name == 'nt' and sys.version_info < (3, 8):
-    # os.path.realpath on Windows does not follow symbolic links
-    # prior to Python 3.8 (see https://bugs.python.org/issue9949)
-    def compat_realpath(path):
-        while os.path.islink(path):
-            path = os.path.abspath(os.readlink(path))
-        return os.path.realpath(path)
-else:
-    compat_realpath = os.path.realpath
+def compat_datetime_from_timestamp(timestamp):
+    # Calling dt.datetime.fromtimestamp with negative timestamps throws error in Windows
+    # Ref: https://github.com/yt-dlp/yt-dlp/issues/5185, https://github.com/python/cpython/issues/81708,
+    # https://github.com/yt-dlp/yt-dlp/issues/6706#issuecomment-1496842642
+    return (dt.datetime.fromtimestamp(0, dt.timezone.utc) + dt.timedelta(seconds=timestamp))
 
 
 # Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl
 # See https://github.com/yt-dlp/yt-dlp/issues/792
 # https://docs.python.org/3/library/os.path.html#os.path.expanduser
-if compat_os_name in ('nt', 'ce'):
+if os.name in ('nt', 'ce'):
     def compat_expanduser(path):
         HOME = os.environ.get('HOME')
         if not HOME:
@@ -72,7 +54,11 @@ else:
     compat_expanduser = os.path.expanduser
 
 
-# NB: Add modules that are imported dynamically here so that PyInstaller can find them
-# See https://github.com/pyinstaller/pyinstaller-hooks-contrib/issues/438
-if False:
-    from . import _legacy  # noqa: F401
+def urllib_req_to_req(urllib_request):
+    """Convert urllib Request to a networking Request"""
+    from ..networking import Request
+    from ..utils.networking import HTTPHeaderDict
+    return Request(
+        urllib_request.get_full_url(), data=urllib_request.data, method=urllib_request.get_method(),
+        headers=HTTPHeaderDict(urllib_request.headers, urllib_request.unredirected_hdrs),
+        extensions={'timeout': urllib_request.timeout} if hasattr(urllib_request, 'timeout') else None)

@@ -2,7 +2,8 @@ from typing import Dict, Any
 
 import re
 import math
-from ..compat import compat_str, compat_HTTPError
+import time
+from ..networking.exceptions import HTTPError
 from ..utils import (
     float_or_none,
     mimetype2ext,
@@ -13,8 +14,12 @@ from ..utils import (
     try_get,
     ExtractorError,
     base_url,
+    urljoin,
     determine_ext,
     urlencode_postdata,
+    url_or_none,
+    variadic,
+    traverse_obj,
 )
 from .common import InfoExtractor
 
@@ -26,44 +31,36 @@ API_TOKEN_URL = "https://api.picta.cu/o/token/"
 
 # noinspection PyAbstractClass
 class PictaBaseIE(InfoExtractor):
+    _NETRC_MACHINE = "picta"
 
     @staticmethod
     def _extract_video(video, video_id=None, require_title=True):
-        if len(video["results"]) == 0:
+        result = traverse_obj(video, ('results', 0), expected_type=dict)
+        if not result:
             raise ExtractorError("Cannot find video!")
 
-        title = (
-            video["results"][0]["nombre"]
-            if require_title
-            else video.get("results")[0].get("nombre")
-        )
-        description = try_get(
-            video, lambda x: x["results"][0]["descripcion"], compat_str
-        )
-        slug_url = try_get(video, lambda x: x["results"][0]["slug_url"], compat_str)
-        uploader = try_get(
-            video, lambda x: x["results"][0]["usuario"]["username"], compat_str
-        )
-        add_date = try_get(video, lambda x: x["results"][0]["fecha_creacion"])
+        title = traverse_obj(result, ('nombre',)) if require_title else traverse_obj(result, ('nombre',))
+        description = traverse_obj(result, ('descripcion',), expected_type=str)
+        slug_url = traverse_obj(result, ('slug_url',), expected_type=str)
+        uploader = traverse_obj(result, ('usuario', 'username'), expected_type=str)
+        add_date = traverse_obj(result, ('fecha_creacion',))
         timestamp = int_or_none(unified_timestamp(add_date))
-        duration = try_get(video, lambda x: x["results"][0]["duracion"])
-        thumbnail = try_get(video, lambda x: x["results"][0]["url_imagen"])
-        manifest_url = try_get(video, lambda x: x["results"][0]["url_manifiesto"])
-        category = try_get(
-            video,
-            lambda x: x["results"][0]["categoria"]["tipologia"]["nombre"],
-            compat_str,
-        )
-        playlist_channel = (
-            video["results"][0]["lista_reproduccion_canal"][0]
-            if len(video["results"][0]["lista_reproduccion_canal"]) > 0
-            else None
-        )
-        subtitle_url = try_get(video, lambda x: x["results"][0]["url_subtitulo"])
+        duration = traverse_obj(result, ('duracion',))
+        thumbnail = traverse_obj(result, ('url_imagen',))
+        manifest_url = traverse_obj(result, ('url_manifiesto',))
+        category = traverse_obj(result, ('categoria', 'tipologia', 'nombre'), expected_type=str)
+        precios = traverse_obj(result, ('precios'), expected_type=list)
 
-        return {
-            "id": try_get(video, lambda x: x["results"][0]["id"], compat_str)
-            or video_id,
+        playlist_channel = traverse_obj(
+            result,
+            ('lista_reproduccion_canal', 0),
+            expected_type=dict
+        )
+
+        subtitle_url = traverse_obj(result, ('url_subtitulo',))
+        video_id_from_result = traverse_obj(result, ('id',), expected_type=str)
+        info_video = {
+            "id": video_id_from_result or video_id,
             "title": title,
             "slug_url": slug_url,
             "description": description,
@@ -74,8 +71,13 @@ class PictaBaseIE(InfoExtractor):
             "category": [category] if category else None,
             "manifest_url": manifest_url,
             "playlist_channel": playlist_channel,
-            "subtitle_url": subtitle_url,
+            "subtitle_url": url_or_none(subtitle_url),
         }
+
+        if precios:
+            info_video['precios'] = precios
+
+        return info_video
 
 
 # noinspection PyAbstractClass
@@ -83,6 +85,8 @@ class PictaIE(PictaBaseIE):
 
     IE_NAME = "picta"
     IE_DESC = "Picta videos"
+    _HEADERS = {}
+
     _VALID_URL = (
         r"https?://(?:www\.)?picta\.cu/(?:medias|movie|embed)/(?:\?v=)?(?P<id>[\da-z-]+)"
         r"(?:\?playlist=(?P<playlist_id>[\da-z-]+))?"
@@ -162,14 +166,21 @@ class PictaIE(PictaBaseIE):
 
     _SUBTITLE_FORMATS = ("srt",)
 
-    def _real_initialize(self):
-        self.playlist_id = None
-        # Fetch credentials (e.g., from netrc or user input)
-        username, password = self._get_login_info()
-        if not username or not password:
-            raise self.raise_login_required(msg="Login credentials needed")
-        self._access_token = self._get_access_token(username, password)
-        self._HEADERS = {"Authorization": f"Bearer {self._access_token}"}
+    def _perform_login(self, username, password):
+        token_cache = self.cache.load(self._NETRC_MACHINE, username)
+        if (
+            token_cache is not None
+            and time.time() <= token_cache['expires_in']
+        ):
+            token_auth = token_cache
+        else:
+            if not token_cache:
+                self.cache.remove()
+            token_auth = self._get_access_token(username, password)
+        if token_auth:
+            self._access_token = token_auth['access_token']
+            self._refresh_token = token_auth['refresh_token']
+            self._HEADERS = {"Authorization": f"Bearer {self._access_token}"}
 
     def _get_access_token(self, username, password):
         data = urlencode_postdata({
@@ -179,24 +190,55 @@ class PictaIE(PictaBaseIE):
             "username": username,
             "password": password,
         })
+        token_cache = {}
+        try:
+            self.report_login()
+            token_data = self._download_json(
+                API_TOKEN_URL, None,
+                note="Fetching access token",
+                data=data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                fatal=True,  # Crash if token fetch fails
+                expected_status=True,
+            )
+        except ExtractorError as e:
+            if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401, 403):
+                resp = self._parse_json(
+                    e.cause.response.read().decode(), None, fatal=False) or {}
+                message = str(resp.get('error_description'))
+                self.report_warning(
+                    f'{message} This video is only available for registered users. '
+                    f'{self._login_hint("password")}'
+                )
+            raise ExtractorError(e.orig_msg, expected=True)
 
-        token_response = self._download_json(
-            API_TOKEN_URL, None,
-            data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            fatal=True,  # Crash if token fetch fails
-        )
-
-        if not token_response or 'access_token' not in token_response:
-            self._downloader.report_error("Failed to fetch access token")
+        if token_data and 'access_token' in token_data:
+            expires = time.time() + token_data['expires_in'] + 60
+            token_cache = {
+                'access_token': token_data['access_token'],
+                'refresh_token': token_data['refresh_token'],
+                'expires_in': expires
+            }
+            self.cache.store(self._NETRC_MACHINE, username, token_cache)
+        else:
             return None
-        return token_response['access_token']
+
+        return token_cache
+
+    def _real_initialize(self):
+        if not self._HEADERS:
+            raise ExtractorError(
+                f'This video is only available for registered users. '
+                f'{self._login_hint("password")}',
+                expected=True
+            )
+        self.playlist_id = None
 
     @classmethod
     def _match_playlist_id(cls, url):
         if "_VALID_URL_RE" not in cls.__dict__:
-            cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        m = cls._VALID_URL_RE.match(url)
+            cls._VALID_URL_RE = tuple(map(re.compile, variadic(cls._VALID_URL)))
+        m = next(filter(None, (regex.match(url) for regex in cls._VALID_URL_RE)), None)
         assert m
         return m.group("playlist_id")
 
@@ -204,13 +246,14 @@ class PictaIE(PictaBaseIE):
         sub_lang_list = {}
         lang = self._LANG_ES
 
-        sub_url = video.get("subtitle_url", "")
+        sub_url = video.get("subtitle_url")
 
         if sub_url:
             sub_formats = []
             for ext in self._SUBTITLE_FORMATS:
                 sub_formats.append(
                     {
+                        "name": "Spanish",
                         "url": sub_url,
                         "ext": ext,
                     }
@@ -249,7 +292,7 @@ class PictaIE(PictaBaseIE):
         mpd_doc, urlh = res
         if mpd_doc is None:
             return []
-        mpd_base_url = base_url(urlh.geturl())
+        mpd_base_url = base_url(urlh.url)
 
         return self._parse_mpd_formats(
             mpd_doc,
@@ -378,7 +421,7 @@ class PictaIE(PictaBaseIE):
                     # According to [1, 5.3.7.2, Table 9, page 41], @mimeType is mandatory
                     mime_type = representation_attrib["mimeType"]
                     content_type = mime_type.split("/")[0]
-                    if content_type == "text":
+                    if content_type == "text" or content_type == "application":
                         # TODO implement WebVTT downloading
                         pass
                     elif content_type in ("video", "audio"):
@@ -658,6 +701,49 @@ class PictaIE(PictaBaseIE):
                         )
         return formats
 
+    def _fix_thumbnails(self, info):
+        """ Fix thumbnails """
+        thumbnails = []
+        thumbnail = url_or_none(info.get("thumbnail"))
+
+        if not thumbnail:
+            return thumbnails
+
+        # Try width/height from info first
+        width = int_or_none(info.get("width"))
+        height = int_or_none(info.get("height"))
+
+        # Fallback: pick largest format that has width/height
+        if not width or not height:
+            _formats = info.get("formats") or []
+
+            def _fmt_area(f):
+                return (int_or_none(f.get("width")) or 0) * (int_or_none(f.get("height")) or 0)
+            for f in sorted(_formats, key=_fmt_area, reverse=True):
+                fw = int_or_none(f.get("width"))
+                fh = int_or_none(f.get("height"))
+                if fw and fh:
+                    width, height = fw, fh
+                    break
+
+        # Fallback: try to parse size from thumbnail filename like _800x600
+        if not width or not height:
+            m = re.search(r"[_-](?P<w>\d{2,5})x(?P<h>\d{2,5})(?:\.[a-zA-Z]{2,4})?$", thumbnail)
+            if m:
+                width = int_or_none(m.group("w"))
+                height = int_or_none(m.group("h"))
+                thumbnail = thumbnail.replace(f"_{width}x{height}", "")
+
+        # If we still don't have size info, return original thumbnail only
+        if not width or not height:
+            thumbnails.append({"url": thumbnail, "id": 0})
+            return thumbnails
+
+        new_url = f"{thumbnail}_{width}x{height}"
+        thumbnails.append({"url": new_url, "id": 0, "width": width, "height": height})
+
+        return thumbnails
+
     def _real_extract(self, url):
         playlist_id = None
         video_id = self._match_id(url)
@@ -678,7 +764,7 @@ class PictaIE(PictaBaseIE):
             and self._match_playlist_id(url)
             and not self._downloader.params.get("noplaylist")
         ):
-            playlist_id = compat_str(self._match_playlist_id(url))
+            playlist_id = str(self._match_playlist_id(url))
             self.playlist_id = playlist_id
             self.to_screen(
                 "Downloading playlist %s - add --no-playlist to just download video"
@@ -690,7 +776,7 @@ class PictaIE(PictaBaseIE):
                 playlist_id,
             )
         elif playlist_id and not self._downloader.params.get("noplaylist"):
-            playlist_id = compat_str(playlist_id)
+            playlist_id = str(playlist_id)
             self.to_screen(
                 "Downloading playlist %s - add --no-playlist to just download video"
                 % playlist_id
@@ -710,6 +796,11 @@ class PictaIE(PictaBaseIE):
         manifest_url = info.get("manifest_url")
         src_ext = determine_ext(manifest_url)
 
+        # Check for paid video
+        price = info.get("precios")
+        if isinstance(price, list) and price and not manifest_url:
+            raise ExtractorError("This video is paid only", expected=True)
+
         if src_ext.startswith("m3u"):
             formats.extend(
                 self._extract_m3u8_formats(manifest_url, video_id, "mp4", m3u8_id="hls")
@@ -720,12 +811,72 @@ class PictaIE(PictaBaseIE):
             )
 
         if not formats:
-            raise ExtractorError("Cannot find video formats")
+            raise ExtractorError("Cannot find video formats", expected=True)
 
         info["formats"] = formats
 
-        # subtitles
-        info["subtitles"] = self.extract_subtitles(info)
+        # subtitles (from API)
+        subtitles = self.extract_subtitles(info)
+
+        # Try to find an HLS subtitle playlist named 'text-spa-external.m3u8'
+        # in the same directory as the video manifest. Some Picta manifests
+        # provide video as MPD but place the subtitles alongside using that
+        # filename. Build the candidate URL by joining the manifest URL with
+        # the known subtitle filename and attempt to download it.
+        subtitle_m3u8_url = None
+        subtitle_url = url_or_none(info.get("subtitle_url"))
+        lang = self._LANG_ES
+        if subtitle_url:
+            sub = self._request_webpage(
+                subtitle_url,
+                video_id,
+                note="Checking subtitle url",
+                errnote=False,
+                fatal=False,
+            )
+            if not sub:
+                subtitle_m3u8_url = urljoin(manifest_url, "text-spa-external.m3u8")
+
+                if subtitle_m3u8_url:
+                    try:
+                        m3u8_doc = self._download_webpage(
+                            subtitle_m3u8_url,
+                            video_id,
+                            note="Downloading m3u8 subtitle info",
+                            errnote="Failed to download m3u8 information",
+                            fatal=False,
+                        )
+                        if (
+                            m3u8_doc
+                            and "#EXTM3U" in m3u8_doc
+                            and ".vtt" in m3u8_doc
+                        ):
+                            sub_info = {
+                                "name": "Spanish",
+                                "url": subtitle_m3u8_url,
+                                "ext": "vtt",
+                                "protocol": "m3u8_native"
+                            }
+                            subtitles.setdefault(lang, []).append(sub_info)
+                            info["subtitle_url"] = None
+                    except ExtractorError:
+                        # Best-effort; do not break extraction if anything goes wrong here.
+                        pass
+            else:
+                for ext in self._SUBTITLE_FORMATS:
+                    sub_info = {
+                        "name": "Spanish",
+                        "url": subtitle_url,
+                        "ext": ext
+                    }
+                subtitles.setdefault(lang, []).append(sub_info)
+
+        info["subtitles"] = subtitles
+
+        # Try fix thumbnails format scale
+        thumbnails = self._fix_thumbnails(info)
+
+        info['thumbnails'] = thumbnails
 
         return info
 
@@ -807,31 +958,29 @@ class PictaPlaylistIE(PictaIE):
         r"\?playlist=(?P<playlist_id>[\da-z-]+)$"
     )
 
-    _NETRC_MACHINE = "picta"
-
     @classmethod
     def _match_playlist_id(cls, url):
         if "_VALID_URL_RE" not in cls.__dict__:
-            cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        m = cls._VALID_URL_RE.match(url)
+            cls._VALID_URL_RE = tuple(map(re.compile, variadic(cls._VALID_URL)))
+        m = next(filter(None, (regex.match(url) for regex in cls._VALID_URL_RE)), None)
         assert m
         return m.group("playlist_id")
 
     def _extract_playlist(self, playlist, playlist_id=None, require_title=True):
-        if len(playlist.get("results", [])) == 0:
+        result = traverse_obj(playlist, ('results', 0), expected_type=dict)
+        if not result:
             raise ExtractorError("Cannot find playlist!")
 
         title = (
-            playlist["results"][0]["nombre"]
+            traverse_obj(result, ('nombre',))
             if require_title
-            else playlist["results"][0].get("nombre")
+            else traverse_obj(result, ('nombre',))
         )
-        thumbnail = try_get(playlist, lambda x: x["results"][0].get("url_imagen"))
-        entries = try_get(playlist, lambda x: x["results"][0]["publicaciones"])
+        thumbnail = traverse_obj(result, ('url_imagen',))
+        entries = traverse_obj(result, ('publicaciones',), expected_type=list)
 
         return {
-            "id": try_get(playlist, lambda x: x["results"][0]["id"], compat_str)
-            or playlist_id,
+            "id": traverse_obj(result, ('id',), expected_type=str) or playlist_id,
             "title": title,
             "thumbnail": thumbnail,
             "entries": entries,
@@ -846,8 +995,8 @@ class PictaPlaylistIE(PictaIE):
             )
             assert playlist.get("count", 0) >= 1
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code in (403,):
-                raise self.raise_login_required(
+            if isinstance(e.cause, HTTPError) and e.cause.status in (403,):
+                self.raise_login_required(
                     msg="This playlist is only available for registered users. Check your username and password"
                 )
         except AssertionError:
@@ -862,9 +1011,6 @@ class PictaPlaylistIE(PictaIE):
                 ROOT_BASE_URL
                 + "medias/"
                 + video.get("slug_url")
-                + "?"
-                + "playlist="
-                + playlist_id
             )
             video_title = video.get("nombre")
             duration = parse_duration(video.get("duracion"))
@@ -882,26 +1028,44 @@ class PictaPlaylistIE(PictaIE):
             json_url, playlist_id, "Downloading playlist JSON", headers=self._HEADERS
         )
         info = self._extract_playlist(playlist, playlist_id)
+        info_playlist = self.playlist_result(entries, playlist_id, info.get('title'))
 
         video_id = self._match_id(url)
         json_slug_url = API_BASE_URL + "publicacion/?format=json&slug_url_raw=%s" % video_id
         video = self._download_json(json_slug_url, video_id, "Downloading video JSON", headers=self._HEADERS)
-        model = try_get(
-            video,
-            lambda x: x["results"][0]["categoria"]["tipologia"]["modelo"],
-            compat_str,
-        )
-        if model == "capitulo":
-            thumbnail = try_get(
-                video,
-                lambda x: x["results"][0]["categoria"]["capitulo"]["temporada"]["serie"]["imagen_secundaria"])
-        elif model == "pelicula":
-            thumbnail = try_get(
-                video,
-                lambda x: x["results"][0]["categoria"]["pelicula"]["imagen_secundaria"])
 
-        info_playlist = self.playlist_result(entries, playlist_id, info.get('title'))
-        info_playlist['thumbnail'] = thumbnail
+        result = traverse_obj(video, ('results', 0))
+        thumbnail = None
+        if result:
+            model = traverse_obj(result, ('categoria', 'tipologia', 'modelo'))
+            if model == 'capitulo':
+                thumbnail = traverse_obj(
+                    result,
+                    ('categoria', 'capitulo', 'temporada', 'serie', 'imagen_secundaria')
+                )
+            elif model == 'pelicula':
+                thumbnail = traverse_obj(
+                    result,
+                    ('categoria', 'pelicula', 'imagen_secundaria')
+                )
+            else:
+                thumbnail = traverse_obj(
+                    result, ('url_imagen',)
+                )
+
+        if thumbnail:
+            thumbnail = f'{str(thumbnail) + "_1280x720"}'
+            thumbnails = []
+            thumb_info = {
+                "url": thumbnail,
+                "id": 0,
+                "width": 1280,
+                "height": 720
+            }
+            thumbnails.append(thumb_info)
+            info_playlist['thumbnail'] = thumbnail
+            info_playlist["thumbnails"] = thumbnails
+
         return info_playlist
 
 
@@ -958,7 +1122,7 @@ class PictaUserPlaylistIE(PictaPlaylistIE):
             entry["slug_url"] = info.get("slug_url")
 
         return {
-            "id": try_get(playlist, lambda x: x["results"][0]["id"], compat_str)
+            "id": try_get(playlist, lambda x: x["results"][0]["id"], str)
             or playlist_id,
             "title": title,
             "thumbnail": thumbnail,

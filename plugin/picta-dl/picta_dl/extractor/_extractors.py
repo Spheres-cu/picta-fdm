@@ -1,4 +1,5 @@
 # flake8: noqa: F401
+# isort: off
 
 from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeIE,
@@ -15,24 +16,32 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeSearchURLIE,
     YoutubeMusicSearchURLIE,
     YoutubeSubscriptionsIE,
-    YoutubeStoriesIE,
     YoutubeTruncatedIDIE,
     YoutubeTruncatedURLIE,
     YoutubeYtBeIE,
     YoutubeYtUserIE,
     YoutubeWatchLaterIE,
-    YoutubeShortsAudioPivotIE
+    YoutubeShortsAudioPivotIE,
+    YoutubeConsentRedirectIE,
 )
+
+# isort: on
+
 from .commonprotocols import (
     MmsIE,
     RtmpIE,
     ViewSourceIE,
 )
 from .facebook import (
+    FacebookAdsIE,
     FacebookIE,
     FacebookPluginsVideoIE,
     FacebookRedirectURLIE,
     FacebookReelIE,
 )
 from .generic import GenericIE
+from .genericembeds import (
+    HTML5MediaEmbedIE,
+    QuotedHTMLIE,
+)
 from .picta import PictaIE, PictaChannelPlaylistIE, PictaUserPlaylistIE

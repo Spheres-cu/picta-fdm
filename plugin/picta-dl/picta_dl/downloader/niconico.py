@@ -1,52 +1,90 @@
+import json
 import threading
+import time
 
-from . import get_suitable_downloader
 from .common import FileDownloader
-from ..utils import sanitized_Request
+from .external import FFmpegFD
+from ..networking import Request
+from ..networking.websocket import WebSocketResponse
+from ..utils import DownloadError, str_or_none, truncate_string
+from ..utils.traversal import traverse_obj
 
 
-class NiconicoDmcFD(FileDownloader):
-    """ Downloading niconico douga from DMC with heartbeat """
+class NiconicoLiveFD(FileDownloader):
+    """ Downloads niconico live without being stopped """
 
     def real_download(self, filename, info_dict):
-        from ..extractor.niconico import NiconicoIE
+        video_id = info_dict['id']
+        opts = info_dict['downloader_options']
+        quality, ws_extractor, ws_url = opts['max_quality'], opts['ws'], opts['ws_url']
+        dl = FFmpegFD(self.ydl, self.params or {})
 
-        self.to_screen('[%s] Downloading from DMC' % self.FD_NAME)
-        ie = NiconicoIE(self.ydl)
-        info_dict, heartbeat_info_dict = ie._get_heartbeat_info(info_dict)
+        new_info_dict = info_dict.copy()
+        new_info_dict['protocol'] = 'm3u8'
 
-        fd = get_suitable_downloader(info_dict, params=self.params)(self.ydl, self.params)
+        def communicate_ws(reconnect):
+            # Support --load-info-json as if it is a reconnect attempt
+            if reconnect or not isinstance(ws_extractor, WebSocketResponse):
+                ws = self.ydl.urlopen(Request(
+                    ws_url, headers={'Origin': 'https://live.nicovideo.jp'}))
+                if self.ydl.params.get('verbose', False):
+                    self.write_debug('Sending startWatching request')
+                ws.send(json.dumps({
+                    'data': {
+                        'reconnect': True,
+                        'room': {
+                            'commentable': True,
+                            'protocol': 'webSocket',
+                        },
+                        'stream': {
+                            'accessRightMethod': 'single_cookie',
+                            'chasePlay': False,
+                            'latency': 'high',
+                            'protocol': 'hls',
+                            'quality': quality,
+                        },
+                    },
+                    'type': 'startWatching',
+                }))
+            else:
+                ws = ws_extractor
+            with ws:
+                while True:
+                    recv = ws.recv()
+                    if not recv:
+                        continue
+                    data = json.loads(recv)
+                    if not data or not isinstance(data, dict):
+                        continue
+                    if data.get('type') == 'ping':
+                        ws.send(r'{"type":"pong"}')
+                        ws.send(r'{"type":"keepSeat"}')
+                    elif data.get('type') == 'disconnect':
+                        self.write_debug(data)
+                        return True
+                    elif data.get('type') == 'error':
+                        self.write_debug(data)
+                        message = traverse_obj(data, ('body', 'code', {str_or_none}), default=recv)
+                        return DownloadError(message)
+                    elif self.ydl.params.get('verbose', False):
+                        self.write_debug(f'Server response: {truncate_string(recv, 100)}')
 
-        success = download_complete = False
-        timer = [None]
-        heartbeat_lock = threading.Lock()
-        heartbeat_url = heartbeat_info_dict['url']
-        heartbeat_data = heartbeat_info_dict['data'].encode()
-        heartbeat_interval = heartbeat_info_dict.get('interval', 30)
+        def ws_main():
+            reconnect = False
+            while True:
+                try:
+                    ret = communicate_ws(reconnect)
+                    if ret is True:
+                        return
+                except BaseException as e:
+                    self.to_screen(
+                        f'[niconico:live] {video_id}: Connection error occured, reconnecting after 10 seconds: {e}')
+                    time.sleep(10)
+                    continue
+                finally:
+                    reconnect = True
 
-        request = sanitized_Request(heartbeat_url, heartbeat_data)
+        thread = threading.Thread(target=ws_main, daemon=True)
+        thread.start()
 
-        def heartbeat():
-            try:
-                self.ydl.urlopen(request).read()
-            except Exception:
-                self.to_screen('[%s] Heartbeat failed' % self.FD_NAME)
-
-            with heartbeat_lock:
-                if not download_complete:
-                    timer[0] = threading.Timer(heartbeat_interval, heartbeat)
-                    timer[0].start()
-
-        heartbeat_info_dict['ping']()
-        self.to_screen('[%s] Heartbeat with %d second interval ...' % (self.FD_NAME, heartbeat_interval))
-        try:
-            heartbeat()
-            if type(fd).__name__ == 'HlsFD':
-                info_dict.update(ie._extract_m3u8_formats(info_dict['url'], info_dict['id'])[0])
-            success = fd.real_download(filename, info_dict)
-        finally:
-            if heartbeat_lock:
-                with heartbeat_lock:
-                    timer[0].cancel()
-                    download_complete = True
-        return success
+        return dl.download(filename, new_info_dict)

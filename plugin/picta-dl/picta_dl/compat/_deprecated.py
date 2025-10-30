@@ -1,16 +1,21 @@
 """Deprecated - New code should avoid these"""
+import warnings
 
-import base64
-import urllib.error
-import urllib.parse
+from .compat_utils import passthrough_module
 
-compat_str = str
+# XXX: Implement this the same way as other DeprecationWarnings without circular import
+passthrough_module(__name__, '.._legacy', callback=lambda attr: warnings.warn(
+    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=6))
+del passthrough_module
 
-compat_b64decode = base64.b64decode
+import functools  # noqa: F401
+import os
 
-compat_HTTPError = urllib.error.HTTPError
-compat_urlparse = urllib.parse
-compat_parse_qs = urllib.parse.parse_qs
-compat_urllib_parse_unquote = urllib.parse.unquote
-compat_urllib_parse_urlencode = urllib.parse.urlencode
-compat_urllib_parse_urlparse = urllib.parse.urlparse
+
+compat_os_name = os.name
+compat_realpath = os.path.realpath
+
+
+def compat_shlex_quote(s):
+    from ..utils import shell_quote
+    return shell_quote(s)

@@ -24,24 +24,6 @@ else:
 
 
 try:
-    from Cryptodome.Cipher import AES as Cryptodome_AES
-except ImportError:
-    try:
-        from Crypto.Cipher import AES as Cryptodome_AES
-    except (ImportError, SyntaxError):  # Old Crypto gives SyntaxError in newer Python
-        Cryptodome_AES = None
-    else:
-        try:
-            # In pycrypto, mode defaults to ECB. See:
-            # https://www.pycryptodome.org/en/latest/src/vs_pycrypto.html#:~:text=not%20have%20ECB%20as%20default%20mode
-            Cryptodome_AES.new(b'abcdefghijklmnop')
-        except TypeError:
-            pass
-        else:
-            Cryptodome_AES._yt_dlp__identifier = 'pycrypto'
-
-
-try:
     import mutagen
 except ImportError:
     mutagen = None
@@ -61,19 +43,28 @@ except Exception as _err:
 
 try:
     import sqlite3
+    # We need to get the underlying `sqlite` version, see https://github.com/yt-dlp/yt-dlp/issues/8152
+    sqlite3._yt_dlp__version = sqlite3.sqlite_version
 except ImportError:
-    # although sqlite3 is part of the standard library, it is possible to compile python without
+    # although sqlite3 is part of the standard library, it is possible to compile Python without
     # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
     sqlite3 = None
 
 
 try:
     import websockets
-except (ImportError, SyntaxError):
-    # websockets 3.10 on python 3.6 causes SyntaxError
-    # See https://github.com/yt-dlp/yt-dlp/issues/2633
+except ImportError:
     websockets = None
 
+try:
+    import urllib3
+except ImportError:
+    urllib3 = None
+
+try:
+    import requests
+except ImportError:
+    requests = None
 
 try:
     import xattr  # xattr or pyxattr
@@ -83,11 +74,19 @@ else:
     if hasattr(xattr, 'set'):  # pyxattr
         xattr._yt_dlp__identifier = 'pyxattr'
 
+try:
+    import curl_cffi
+except ImportError:
+    curl_cffi = None
+
+from . import Cryptodome
 
 all_dependencies = {k: v for k, v in globals().items() if not k.startswith('_')}
-
-
 available_dependencies = {k: v for k, v in all_dependencies.items() if v}
+
+
+# Deprecated
+Cryptodome_AES = Cryptodome.AES
 
 
 __all__ = [
