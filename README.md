@@ -34,19 +34,79 @@ Based on the plugin [Elephant](https://github.com/meowcateatrat/elephant) and [p
 
     - *And the config file must be have:*
 
+    **~~NOT recommended~~**
+
     ```text
     #User and password
     -u <your_picta_user>
     -p <your_picta_password>
     ```
 
+    **OR**
+
+    **<ins>Recommended</ins>**
+
+    *use .netrc credential:*
+
+    *create in %USERPROFILE% (Windows) the file .netrc and put:*
+
+    ```text
+    machine <extractor> login <login> password <password>
+    ```
+
+    *where:*
+
+    ```text
+    - extractor = picta
+    - login = your picta user
+    - password = your picta password
+    ```
+
+    *and add to config just only:*
+
+    ```text
+    --netrc
+    ```
+
+    *This script can create the file with the credential:*
+
+    ```bash
+    @echo off
+    setlocal enabledelayedexpansion
+
+    set NETRC_FILE=%USERPROFILE%\.netrc
+
+    echo Creando archivo .netrc en %USERPROFILE%
+    echo.
+    set /p "login=Entre login(usuario de picta): "
+
+    for /f "delims=" %%p in ('powershell -Command "$password = Read-Host -AsSecureString 'Entre password'; $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password); [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)"') do set "password=%%p"
+
+    set "password=!password: =!"
+    set "password=!password: =!"
+
+    echo|set /p="machine picta login !login! password !password!" > "%NETRC_FILE%"
+
+    echo.
+    echo El archivo .netrc ha sido creado satisfactoriamente en: %NETRC_FILE%
+    echo.
+    echo Contenido de .netrc:
+    type "%NETRC_FILE%"
+
+    set "password="
+    ```
+
+   *Create a file for example: "create_netrc_file.cmd",  put the above code and execute in a windows console.*
+
+   *On Linux the same but in ```~/.netrc``` file you can create the credentials.*
+
 3. Install the picta-fdm.fda using from plugin menu: *install from file* option in Free Download Manager.
 
 ## Requirements
 
-1. Python 3.9 or above
+1. Python 3.10 or above
    - If you don't have Python installed in your system Free Download Manager get you the option for install it.
-2. Free Download Manager version 6.30.0.6459 or above.
+2. Free Download Manager version 6.30.3.6515 or above.
 
 ## Usage
 
