@@ -107,7 +107,7 @@ Basado en el complemento [Elephant](https://github.com/meowcateatrat/elephant) y
 
 ## Requisitos
 
-1. Python 3.9 o superior
+1. Python 3.10 o superior
 
     - Si no tiene Python instalado en su sistema, Free Download Manager le da la opción de instalarlo.
 
