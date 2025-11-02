@@ -111,7 +111,7 @@ Basado en el complemento [Elephant](https://github.com/meowcateatrat/elephant) y
 
     - Si no tiene Python instalado en su sistema, Free Download Manager le da la opción de instalarlo.
 
-2. Free Download Manager versión 6.30.3.6515 o superior.
+2. Free Download Manager última versión.
 
 ## Forma de Uso
 
