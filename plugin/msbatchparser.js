@@ -8,6 +8,8 @@ var msBatchVideoParser = (function() {
         parse: function(obj) {
             let customArg = [];
             customArg = msAbstractParser.isYoutubeSource(obj.url) ? ["--flat-playlist", "-I", "1:1000"] : ["--flat-playlist"];
+            customArg = customArg.concat(["--no-warnings"])
+
             return msAbstractParser.parse(obj, customArg)
             .then(function(res) {
                 return new Promise(function(resolve, reject) {
