@@ -245,7 +245,6 @@ class PictaIE(PictaBaseIE):
     def _get_subtitles(self, video):
         sub_lang_list = {}
         lang = self._LANG_ES
-
         sub_url = video.get("subtitle_url")
 
         if sub_url:
@@ -259,8 +258,8 @@ class PictaIE(PictaBaseIE):
                     }
                 )
             sub_lang_list[lang] = sub_formats
+
         if not sub_lang_list:
-            self.report_warning("video doesn't have subtitles")
             return {}
         return sub_lang_list
 
@@ -815,17 +814,17 @@ class PictaIE(PictaBaseIE):
 
         info["formats"] = formats
 
-        # subtitles (from API)
-        subtitles = self.extract_subtitles(info)
-
-        # Try to find an HLS subtitle playlist named 'text-spa-external.m3u8'
-        # in the same directory as the video manifest. Some Picta manifests
-        # provide video as MPD but place the subtitles alongside using that
-        # filename. Build the candidate URL by joining the manifest URL with
+        # If fail check subtitle_url then try guess an HLS subtitle playlist
+        # named 'text-spa-external.m3u8' in the video manifest directory.
+        # Some Picta manifests provide video as MPD but place the subtitles
+        # alongside using that filename.
+        # Build the candidate URL by joining the manifest URL with
         # the known subtitle filename and attempt to download it.
-        subtitle_m3u8_url = None
+
         subtitle_url = url_or_none(info.get("subtitle_url"))
+        subtitles = {}
         lang = self._LANG_ES
+
         if subtitle_url:
             sub = self._request_webpage(
                 subtitle_url,
@@ -835,9 +834,17 @@ class PictaIE(PictaBaseIE):
                 fatal=False,
             )
             if not sub:
+                info["subtitle_url"] = None
                 subtitle_m3u8_url = urljoin(manifest_url, "text-spa-external.m3u8")
 
-                if subtitle_m3u8_url:
+                m3u8_sub = self._request_webpage(
+                    subtitle_m3u8_url,
+                    video_id,
+                    note="Checking m3u8 subtitle url",
+                    errnote=False,
+                    fatal=False,
+                )
+                if m3u8_sub:
                     try:
                         m3u8_doc = self._download_webpage(
                             subtitle_m3u8_url,
@@ -858,7 +865,6 @@ class PictaIE(PictaBaseIE):
                                 "protocol": "m3u8_native"
                             }
                             subtitles.setdefault(lang, []).append(sub_info)
-                            info["subtitle_url"] = None
                     except ExtractorError:
                         # Best-effort; do not break extraction if anything goes wrong here.
                         pass
