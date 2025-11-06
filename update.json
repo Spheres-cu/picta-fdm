@@ -24,6 +24,12 @@
         "distributiveUrl" : "https://github.com/Spheres-cu/picta-fdm/releases/download/1.0.7/picta-fdm.fda",
         "minApiVersion": 7,
         "minFeaturesLevel": 2
+      },
+      {
+        "version" : "1.0.8",
+        "distributiveUrl" : "https://github.com/Spheres-cu/picta-fdm/releases/download/1.0.8/picta-fdm.fda",
+        "minApiVersion": 8,
+        "minFeaturesLevel": 2
       }
   ]
 }
