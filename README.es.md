@@ -12,7 +12,7 @@
 
 Proporciona soporte para descargar videos de [www.picta.cu](https://picta.cu) es un complemento para [Free download Manager](https://www.freedownloadmanager.org/).
 
-Basado en el complemento [Elephant](https://github.com/meowcateatrat/elephant) y [picta-dl](https://github.com/oleksis/picta-dl)  descargador de videos para Picta.cu
+Basado en [picta-dl](https://github.com/oleksis/picta-dl)  descargador de videos para Picta.cu
 
 ## Instalación
 
@@ -111,7 +111,9 @@ Basado en el complemento [Elephant](https://github.com/meowcateatrat/elephant) y
 
     - Si no tiene Python instalado en su sistema, Free Download Manager le da la opción de instalarlo.
 
-2. Free Download Manager última versión.
+2. Free Download Manager versión: **6.30.3.Build 6518**
+
+   - **IMPORTANTE:** Debido a nuevas restrincciones en la API 9 de FDM no permite que el plugin lea o escriba datos temporales sin autorización, el plugin depende de eso para generar y leer las credenciales de acceso a PICTA. Por tanto si actualiza por encima de  6.30.3.Build 6518 no va a funcionar. Lo sentimos mucho.
 
 ## Forma de Uso
 

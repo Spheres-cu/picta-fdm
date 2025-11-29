@@ -12,7 +12,7 @@
 
 Provides support for downloading videos from [www.picta.cu](https://picta.cu) it is a Add-on for [Free download Manager](https://www.freedownloadmanager.org/).
 
-Based on the plugin [Elephant](https://github.com/meowcateatrat/elephant) and [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Picta.cu
+Based on [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Picta.cu
 
 ## Install
 
@@ -106,7 +106,10 @@ Based on the plugin [Elephant](https://github.com/meowcateatrat/elephant) and [p
 
 1. Python 3.10 or above
    - If you don't have Python installed in your system Free Download Manager get you the option for install it.
-2. Free Download Manager latest version.
+
+2. Free Download Manager version: **6.30.3.Build 6518**
+
+   - **IMPORTANT:** Due to new restrictions in FDM API 9, the plugin is no longer allowed to read or write temporary data without authorization. The plugin relies on this to generate and read PICTA access credentials. Therefore, if you update beyond version **6.30.3.Build 6518**, it will not work. We apologize for any inconvenience.
 
 ## Usage
 
