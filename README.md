@@ -10,9 +10,9 @@
 
 ![Picta-fdm Logo](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/logo-miniaturas.png?raw=true)
 
-Provides support for downloading videos from [www.picta.cu](https://picta.cu) it is a Add-on for [Free download Manager](https://www.freedownloadmanager.org/).
+Provides support for downloading videos from [www.picta.cu](https://picta.cu) and [Youtube](https://www.youtube.com) it is a Add-on for [Free download Manager](https://www.freedownloadmanager.org/).
 
-Based on [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Picta.cu
+Based on [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Picta.cu and [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
 ## Install
 
@@ -107,9 +107,31 @@ Based on [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Pi
 1. Python 3.10 or above
    - If you don't have Python installed in your system Free Download Manager get you the option for install it.
 
-2. Free Download Manager version: **6.30.3.Build 6518**
+2. Free Download Manager latest version
 
-   - **IMPORTANT:** Due to new restrictions in FDM API 9, the plugin is no longer allowed to read or write temporary data without authorization. The plugin relies on this to generate and read PICTA access credentials. Therefore, if you update beyond version **6.30.3.Build 6518**, it will not work. We apologize for any inconvenience.
+3. If you are interesting in download videos from Youtube with this plugin you need install the following library in Python and a javascript runtime:
+
+   - Install the latest release of yt-dlp-ejs:
+
+   ```bash
+   pip install -U yt-dlp-ejs
+   ```
+
+   OR
+
+   ```bash
+   pipx install -U yt-dlp[default]
+   ```
+
+   More info: [yt-dlp wiki EJS](https://github.com/yt-dlp/yt-dlp/wiki/EJS) and [yt-dl-ejs](https://github.com/yt-dlp/ejs)
+
+   - Install Deno:
+
+   You need Deno(a JavaScript runtime) for get all available video formats using the yt-dlp-ejs library
+
+   More info: [Deno install](https://docs.deno.com/runtime/getting_started/installation/) and [yt-dlp wiki EJS#Deno](https://github.com/yt-dlp/yt-dlp/wiki/EJS#deno)
+
+   > Depending on the version of FDM and the API Feature Level of the plugin (version 3), it may offer you the option to install Deno.
 
 ## Usage
 
@@ -142,3 +164,9 @@ Enjoy it !
 Some media playlist can have error like "Not Found". This can be because the content of the media was erase or for some error  when was uploaded to [www.picta.cu](https://www.picta.cu). That case you will see a error message: "Error HTTP Error 404: Not Found"
 
 ![Picta-fdm troubleshooting](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/HTTP_Error_404_Not_Found.png?raw=true)
+
+### Plugin signature troubleshooting
+
+If get some error based in the plugin signature you can activate the dev mode, this mode permit the execution of the plugin without the API 9 restrinction.
+
+![Picta-fdm dev mode](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/dev_mode_en.png?raw=true)
