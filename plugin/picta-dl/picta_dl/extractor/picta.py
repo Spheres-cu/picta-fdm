@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Any
 
 import re
 import math
@@ -453,7 +453,7 @@ class PictaIE(PictaBaseIE):
                             else None
                         )
                         bandwidth = int_or_none(representation_attrib.get("bandwidth"))
-                        f: Dict[str, Any] = {
+                        f: dict[str, Any] = {
                             "format_id": "%s-%s" % (mpd_id, representation_id)
                             if mpd_id
                             else representation_id,
@@ -1010,7 +1010,7 @@ class PictaPlaylistIE(PictaIE):
 
         info_playlist = self._extract_playlist(playlist, playlist_id)
         playlist_entries = info_playlist.get("entries")
-        entries: Dict[str, Any] = {}
+        entries: dict[str, Any] = {}
         for video in playlist_entries:
             video_id = video.get("id")
             video_url = (
@@ -1026,7 +1026,7 @@ class PictaPlaylistIE(PictaIE):
 
     def _real_extract(self, url):
         playlist = {}
-        info_playlist: Dict[str, Any] = {}
+        info_playlist: dict[str, Any] = {}
         playlist_id = self._match_playlist_id(url)
         entries = self._entries(playlist_id)
         json_url = self.API_PLAYLIST_ENDPOINT + "?format=json&id=%s" % playlist_id
