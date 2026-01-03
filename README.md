@@ -105,33 +105,13 @@ Based on [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Pi
 ## Requirements
 
 1. Python 3.10 or above
-   - If you don't have Python installed in your system Free Download Manager get you the option for install it.
+   > If you don't have Python installed in your system Free Download Manager get you the option for install it.
 
 2. Free Download Manager latest version
 
-3. If you are interesting in download videos from Youtube with this plugin you need install the following library in Python and a javascript runtime:
+3. A JavaScript runtime: [Deno](https://docs.deno.com/runtime)
 
-   - Install the latest release of yt-dlp-ejs:
-
-   ```bash
-   pip install -U yt-dlp-ejs
-   ```
-
-   OR
-
-   ```bash
-   pipx install -U yt-dlp[default]
-   ```
-
-   More info: [yt-dlp wiki EJS](https://github.com/yt-dlp/yt-dlp/wiki/EJS) and [yt-dl-ejs](https://github.com/yt-dlp/ejs)
-
-   - Install Deno:
-
-   You need Deno(a JavaScript runtime) for get all available video formats using the yt-dlp-ejs library
-
-   More info: [Deno install](https://docs.deno.com/runtime/getting_started/installation/) and [yt-dlp wiki EJS#Deno](https://github.com/yt-dlp/yt-dlp/wiki/EJS#deno)
-
-   > Depending on the version of FDM and the API Feature Level of the plugin (version 3), it may offer you the option to install Deno.
+   > If you don't have already installed Deno in your system Free Download Manager get you the option for install it.
 
 ## Usage
 

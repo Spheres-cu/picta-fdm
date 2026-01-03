@@ -109,33 +109,13 @@ Basado en [picta-dl](https://github.com/oleksis/picta-dl) descargador de videos 
 
 1. Python 3.10 o superior
 
-    - Si no tiene Python instalado en su sistema, Free Download Manager le da la opción de instalarlo.
+    > Si no tiene Python instalado en su sistema, Free Download Manager le da la opción de instalarlo.
 
 2. Free Download Manager la última versión.
 
-3. Si está interesado en descargar videos de YouTube con este complemento, necesita instalar la siguiente biblioteca en Python y un entorno de ejecución de JavaScript:
+3. Un entorno de ejecución de JavaScript: [Deno](https://docs.deno.com/runtime)
 
-   - Instale la última versión de yt-dlp-ejs:
-
-   ```bash
-   pip install -U yt-dlp-ejs
-   ```
-
-   Ó
-
-   ```bash
-   pipx install -U yt-dlp[default]
-   ```
-
-   Más información: [yt-dlp wiki EJS](https://github.com/yt-dlp/yt-dlp/wiki/EJS) y [yt-dl-ejs](https://github.com/yt-dlp/ejs)
-
-   - Instalar Deno:
-
-   Necesita Deno (un entorno de ejecución de JavaScript) para obtener todos los formatos de video disponibles usando la biblioteca yt-dlp-ejs.
-
-   Más información: [Deno install](https://docs.deno.com/runtime/getting_started/installation/) y [yt-dlp wiki EJS#Deno](https://github.com/yt-dlp/yt-dlp/wiki/EJS#deno)
-
-   > Dependiendo de la versión de FDM y el nivel de características de la API del complemento (versión 3), es posible que FDM le ofrezca la opción de instalar Deno.
+    > Si aún no tiene instalado Deno en su sistema, Free Download Manager le brinda la opción de instalarlo.
 
 ## Forma de Uso
 
