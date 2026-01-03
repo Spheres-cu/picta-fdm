@@ -3,18 +3,28 @@
   "author": "https://github.com/Spheres-cu",
   "name": "Picta",
   "description": "Proporciona soporte para la descarga de videos desde el sitio www.picta.cu.",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "icon": "logo.png",
   "mediaParser": true,
   "mediaListParser": true,
   "minApiVersion": 8,
-  "minFeaturesLevel": 2,
+  "minFeaturesLevel": 3,
   "targetApiVersion": 8,
   "dependencies": {
-    "Python": {"minVersion": "3.10"}
+    "Python": {"minVersion": "3.10"},
+    "Deno": {"minVersion": "2.0.0"}
   },
   "permissions": [
-    "launchPython"
+    "launchPython",
+    "launchDeno"
+  ],
+  "allowedPaths": [
+    "%USERPROFILE%",
+    "%APPDATA%/yt-dlp",
+    "%USERPROFILE%/.cache/yt-dlp/picta",
+    "~/",
+    "~/.config/yt-dlp",
+    "~/.cache/yt-dlp/picta"
   ],
   "scripts": [
     "msabstractparser.js",
