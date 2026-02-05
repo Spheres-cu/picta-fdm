@@ -30,7 +30,7 @@ var msBatchVideoParser = (function() {
                                 playlist.thumbnails = !playlist.thumbnails ? res.thumbnails : playlist.thumbnails;
                                 playlist.entries = entries;
                                 resolve(playlist);
-                                console.log("PlaylistYTChannel results: ", JSON.stringify(playlist, null));
+                                // console.log("PlaylistYTChannel results: ", JSON.stringify(playlist, null));
                                 return;
                             }
                         }
@@ -108,7 +108,7 @@ var msBatchVideoParser = (function() {
                             isParseError: true
                         });
                     }
-                    console.log("Playlist results: ", JSON.stringify(playlist, null))                  
+                    // console.log("Playlist results: ", JSON.stringify(playlist, null))                  
                 });
             });
         },

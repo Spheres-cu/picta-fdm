@@ -42,11 +42,32 @@ function parseYTentries(entries) {
   return entries;
 }
 
-function Pythonlogs(obj)
-{
-  if (obj.output)
-    console.log("Python result: ", obj.output);
-    
-  if (obj.errorOutput)
-    console.log("Python Errors: ", obj.errorOutput);
+function detectOSFromUserAgent(userAgent) {
+  const ua = new String(userAgent).toLowerCase();
+
+  // Windows detection
+  if (ua.includes('windows nt 10.0'))
+    return 'Windows';
+
+  // macOS detection
+  if (ua.includes('macintosh') || ua.includes('mac os x'))
+    return 'macOS';
+
+  // Linux detection
+  if (ua.includes('linux'))
+    return 'Linux';
+
+  // Default unknown
+  return 'Unknown';
+}
+
+function isSupportedBrowser(browser) {
+  const SupportedBrowsers = [/(?:brave|firefox|chrome|chromium|edge|opera|safari|vivaldi|whale)/i]
+  return SupportedBrowsers.some(pattern => pattern.test(browser));
+}
+
+function PythonErrorlog(obj) {
+  let errLog = new String(obj.errorOutput)
+  if (errLog.length)
+    console.log("Python Errors:", errLog);
 }

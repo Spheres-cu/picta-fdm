@@ -7,11 +7,10 @@ var msAbstractParser = (function() {
             console.log("parsing...");
 
             let args = [];
-            let systemUserAgent;
-
-            try {
-                systemUserAgent = qtJsSystem.defaultUserAgent;
-            } catch (e) {}
+            let systemUserAgent = new String(qtJsSystem.defaultUserAgent);
+            let AllowWbCookies = new Boolean(App.pluginsAllowWbCookies);
+            let WebBrowser = new String(qtJsSystem.defaultWebBrowser);
+            let isYoutubeUrl = msAbstractParser.isYoutubeSource(obj.url);
 
             let proxyUrl = qtJsNetworkProxyMgr.proxyForUrl(obj.url).url();
             if (proxyUrl) {
@@ -19,11 +18,18 @@ var msAbstractParser = (function() {
                 args.push("--proxy", proxyUrl);
             }
 
-            args.push("-J");
+            args.push("-J", "--verbose");
 
             let userAgent = obj.userAgent || systemUserAgent;
             if (userAgent)
                 args.push('--user-agent', userAgent);
+
+            if (AllowWbCookies && isYoutubeUrl) {
+                let osType = detectOSFromUserAgent(userAgent);
+                if (osType !== "Unknown" && isSupportedBrowser(WebBrowser))
+                    if (osType === "Linux" || WebBrowser.toLowerCase() === "firefox")
+                        args.push('--cookies-from-browser', WebBrowser);
+            }
 
             if (customArgs.length)
                 args = args.concat(customArgs);
@@ -32,7 +38,7 @@ var msAbstractParser = (function() {
 
             return launchPythonScript(obj.requestId, obj.interactive, "picta-dl/picta_dl/__main__.py", args)
                 .then(function(obj) {
-                    Pythonlogs(obj);
+                    PythonErrorlog(obj);
 
                     return new Promise(function(resolve, reject) {
                         let output = obj.output.trim();
@@ -44,14 +50,13 @@ var msAbstractParser = (function() {
                                 var NotFound = /ERROR:\s*\[picta\]\s*.*: (?:Cannot find video!|HTTP Error 404: Not Found)/i.test(obj.errorOutput);
                                 var Forbidden = /ERROR:\s*\[picta\]\s*.*: HTTP Error 403: Forbidden/.test(obj.errorOutput);
                                 var TimeoutError = /ERROR:\s*\[picta\]\s*.*: (?:HTTP Error 408|Read timed out)/i.test(obj.errorOutput);
-                                var BadCredentials = /ERROR:\s*\[picta\]\s*.*: HTTP Error (?:400|401|)/i.test(obj.errorOutput);
+                                var BadCredentials = /ERROR:\s*\[picta\]\s*.*: HTTP Error (?:400|401)|This video is only available for registered users/i.test(obj.errorOutput);
                                 var PaidVideo = /ERROR:\s*\[picta\]\s*.*: This video is paid only/i.test(obj.errorOutput);
-                                var isYoutubeUrl = msAbstractParser.isYoutubeSource(obj.url)
                                 var YTNotFound = /ERROR:\s*\[youtube\]\s*\w+:\s*Video unavailable/i.test(obj.errorOutput);
                             }
 
                             if (TimeoutError || BadCredentials) {
-                                let errorMsg = TimeoutError ? "Tiempo de espera agotado" : "Crendenciales no validas, revise usuario y contraseña o netrc (picta)"
+                                let errorMsg = TimeoutError ? "Read timed out" : "Crendenciales no validas, revise usuario y contraseña o netrc (picta)"
                                 reject({
                                     error: errorMsg,
                                     isParseError: false
