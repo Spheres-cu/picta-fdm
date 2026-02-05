@@ -150,3 +150,11 @@ Some media playlist can have error like "Not Found". This can be because the con
 If get some error based in the plugin signature you can activate the dev mode, this mode permit the execution of the plugin without the API 9 restrinction.
 
 ![Picta-fdm dev mode](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/dev_mode_en.png?raw=true)
+
+### Allow add-ons use browser cookies (for YT downloads)
+
+Sometimes you can get HTTP Error 403 or 429 from Youtube because the requests rate limit or overuse of the amount of downloads without a user account, but if you activate the option of "Allow add-ons to use web browser cookies" in the add-ons section you can avoid that's problem, but be careferul with the rate limit and amount of download  because your account in YT can be bloqued for certain time or permanent.
+
+For the use of the web browser cookies don't work well in chromium-based browser in Windows so I recommend use firefox instead.
+
+With Linux in almost any web browser work that's feature: brave, firefox, chrome, chromium, edge, opera, safari, vivaldi, whale.

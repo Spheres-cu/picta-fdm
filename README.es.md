@@ -158,3 +158,11 @@ Algunas listas de reproducción multimedia pueden mostrar un error como "No enco
 Si recibe algún error basado en la firma del complemento, puede activar el modo de desarrollo, este modo permite la ejecución del complemento sin la restricción de la API 9.
 
 ![Picta-fdm dev mode](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/dev_mode.png?raw=true)
+
+### Permitir que los complementos utilicen cookies del navegador (para descargas de YouTube)
+
+A veces puedes obtener el error HTTP 403 0 429 de Youtube debido al sobre paso del límite de solicitudes para descargar sin una cuenta de usuario, pero si activas la opción de "Permitir que los complementos utilicen cookies del navegador web" en la sección de complementos puedes evitar ese problema, pero ten cuidado con el límite de solicitudes y la cantidad de descarga porque tu cuenta en YT puede ser bloqueada por un tiempo determinado o permanente.
+
+El uso de cookies del navegador web no funciona bien en los navegadores basados ​​en Chrome en Windows, por lo que recomiendo utilizar Firefox en su lugar.
+
+Con Linux, esta característica funciona en casi cualquier navegador web: Brave, Firefox, Chrome, Chrome, Edge, Opera, Safari, Vivaldi, Whale.
