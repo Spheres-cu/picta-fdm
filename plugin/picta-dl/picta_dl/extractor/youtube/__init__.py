@@ -16,7 +16,7 @@ from ._redirect import (
     YoutubeYtBeIE,
     YoutubeYtUserIE,
 )
-from ._search import YoutubeMusicSearchURLIE, YoutubeSearchDateIE, YoutubeSearchIE, YoutubeSearchURLIE
+from ._search import YoutubeMusicSearchURLIE, YoutubeSearchIE, YoutubeSearchURLIE
 from ._tab import YoutubePlaylistIE, YoutubeTabBaseInfoExtractor, YoutubeTabIE
 from ._video import YoutubeIE
 
@@ -39,7 +39,6 @@ for _cls in [
     YoutubeYtBeIE,
     YoutubeYtUserIE,
     YoutubeMusicSearchURLIE,
-    YoutubeSearchDateIE,
     YoutubeSearchIE,
     YoutubeSearchURLIE,
     YoutubePlaylistIE,
@@ -47,4 +46,4 @@ for _cls in [
     YoutubeTabIE,
     YoutubeIE,
 ]:
-    _cls.__module__ = 'yt_dlp.extractor.youtube'
+    _cls.__module__ = 'picta_dl.extractor.youtube'

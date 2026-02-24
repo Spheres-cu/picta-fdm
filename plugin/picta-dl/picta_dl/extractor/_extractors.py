@@ -11,7 +11,6 @@ from .youtube import (  # Youtube is moved to the top to improve performance
     YoutubeLivestreamEmbedIE,
     YoutubePlaylistIE,
     YoutubeRecommendedIE,
-    YoutubeSearchDateIE,
     YoutubeSearchIE,
     YoutubeSearchURLIE,
     YoutubeMusicSearchURLIE,
