@@ -34,71 +34,15 @@ Based on [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Pi
 
     - *And the config file must be have:*
 
-    **~~NOT recommended~~**
-
     ```text
-    #User and password
+    # User and password
     -u <your_picta_user>
     -p <your_picta_password>
     ```
 
-    **OR**
+   **<ins>Important note!</ins>**
 
-    **<ins>Recommended</ins>**
-
-    *use .netrc credential:*
-
-    *create in %USERPROFILE% (Windows) the file .netrc and put:*
-
-    ```text
-    machine <extractor> login <login> password <password>
-    ```
-
-    *where:*
-
-    ```text
-    - extractor = picta
-    - login = your picta user
-    - password = your picta password
-    ```
-
-    *and add to config just only:*
-
-    ```text
-    --netrc
-    ```
-
-    *This script can create the file with the credential:*
-
-    ```bash
-    @echo off
-    setlocal enabledelayedexpansion
-
-    set NETRC_FILE=%USERPROFILE%\.netrc
-
-    echo Creando archivo .netrc en %USERPROFILE%
-    echo.
-    set /p "login=Entre login(usuario de picta): "
-
-    for /f "delims=" %%p in ('powershell -Command "$password = Read-Host -AsSecureString 'Entre password'; $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password); [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)"') do set "password=%%p"
-
-    set "password=!password: =!"
-    set "password=!password: =!"
-
-    echo|set /p="machine picta login !login! password !password!" > "%NETRC_FILE%"
-
-    echo.
-    echo El archivo .netrc ha sido creado satisfactoriamente en: %NETRC_FILE%
-    echo.
-    echo Contenido de .netrc:
-    type "%NETRC_FILE%"
-
-    set "password="
-    ```
-
-   *Create a file for example: "create_netrc_file.cmd",  put the above code and execute in a windows console.*
-
-   *On Linux the same but in ```~/.netrc``` file you can create the credentials.*
+   if you configured a *.netrc* credential please **remove it from config file** due to a Security vulnerability [CVE-2026-26331](https://nvd.nist.gov/vuln/detail/CVE-2026-26331) is no longer recommended.
 
 3. Install the picta-fdm.fda using from plugin menu: *install from file* option in Free Download Manager.
 
