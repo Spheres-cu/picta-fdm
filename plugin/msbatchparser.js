@@ -8,8 +8,6 @@ var msBatchVideoParser = (function() {
         parse: function(obj) {
             let customArg = [];
             customArg = msAbstractParser.isYoutubeSource(obj.url) ? ["--flat-playlist", "-I", "1:1000"] : ["--flat-playlist"];
-            customArg = customArg.concat(["--no-warnings"])
-
             return msAbstractParser.parse(obj, customArg)
             .then(function(res) {
                 return new Promise(function(resolve, reject) {
@@ -18,8 +16,8 @@ var msBatchVideoParser = (function() {
                     let isYTChannel = /^https?:\/\/(?:www\.)?youtube\.com\/channel\/[\w-]+/i.test(obj.url);
 
                     try {
-                        if (isYTChannel && res?.hasOwnProperty("channel_id")) {
-                            if (res?.hasOwnProperty("entries") && Array.isArray(res.entries) && res.entries.length > 1) {
+                        if (isYTChannel && res.hasOwnProperty("channel_id")) {
+                            if (res.hasOwnProperty("entries") && Array.isArray(res.entries) && res.entries.length > 1) {
                                let mapped_entries = mapEntries(res.entries);
                                 entries = parseYTentries(mapped_entries) || [];
 
@@ -35,53 +33,15 @@ var msBatchVideoParser = (function() {
                             }
                         }
 
-                        if (res?.hasOwnProperty("entries") && Array.isArray(res.entries)) {
+                        if (res.hasOwnProperty("entries") && Array.isArray(res.entries)) {
                             if (res.entries.length > 0) {
                                 playlist = res;
                                 if (msAbstractParser.isYoutubeSource(obj.url)) {
                                     entries = parseYTentries(res.entries)
                                     playlist.entries = entries;
                                 }
-
                                 resolve(playlist);
                                 return;
-                            } else if (res.entries.length === 0) {
-                                msAbstractParser.parse(obj, ["--no-playlist"]).then(function(detail) {
-                                    try {
-                                        entries.push({
-                                            _type: "url",
-                                            url: detail.webpage_url,
-                                            title: detail.title,
-                                            duration: detail.duration
-                                        });
-
-                                        playlist._type = "playlist";
-                                        playlist.id = detail.id || res.id;
-                                        playlist.title = detail.title || res.title;
-                                        playlist.webpage_url = detail.webpage_url || res.webpage_url;
-                                        playlist.entries = entries;
-                                        playlist.thumbnails = detail.thumbnails;                                    
-                                        resolve(playlist);
-                                    } catch (e) {
-                                        reject({
-                                            error: e.message,
-                                            isParseError: true
-                                        });
-                                    }
-
-                                    }).catch(function(err) {
-                                        console.log("Detailed parse fails:", err.error);
-                                        try {
-                                            playlist = res || {};
-                                            resolve(playlist);
-                                        } catch (e) {
-                                            reject({
-                                                error: e.message,
-                                                isParseError: true
-                                            });
-                                        }
-                                    });
-                                    return;
                             }
                         }
 

@@ -5,7 +5,7 @@ var msParser = (function() {
 
         parse: function(obj) {
             return msAbstractParser.parse(obj, ["--no-playlist"])
-                .then(this.parsecontent);
+            .then(this.parsecontent);
         },
 
         parsecontent: function(obj) {

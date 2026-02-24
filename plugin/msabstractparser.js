@@ -20,9 +20,11 @@ var msAbstractParser = (function() {
 
             args.push("-J", "--verbose");
 
+            if (isYoutubeUrl) {
+                args.push("--ignore-config");
+            }
+
             let userAgent = obj.userAgent || systemUserAgent;
-            if (userAgent)
-                args.push('--user-agent', userAgent);
 
             if (AllowWbCookies && isYoutubeUrl) {
                 let osType = detectOSFromUserAgent(userAgent);
@@ -31,29 +33,29 @@ var msAbstractParser = (function() {
                         args.push('--cookies-from-browser', WebBrowser);
             }
 
-            if (customArgs.length)
+            if (customArgs.length) {
                 args = args.concat(customArgs);
+            }
 
             args.push(obj.url);
 
             return launchPythonScript(obj.requestId, obj.interactive, "picta-dl/picta_dl/__main__.py", args)
-                .then(function(obj) {
-                    PythonErrorlog(obj);
+            .then(function(obj) {
+                Pythonlog(obj);
 
-                    return new Promise(function(resolve, reject) {
-                        let output = obj.output.trim();
-                        let isPlaylist = /\"_type\"\:\s*\"playlist\"/.test(output);
+                return new Promise(function(resolve, reject) {
+                    let output = obj.output.trim();
+                    let isPlaylist = /\"_type\"\:\s*\"playlist\"/.test(output);
 
+                    if (!output || output[0] !== '{') {
                         try {
-                            if (!output || output[0] !== '{') {
-                                var isUnsupportedUrl = /ERROR:\s*\[generic\]\s*Unsupported URL:/.test(output);
-                                var NotFound = /ERROR:\s*\[picta\]\s*.*: (?:Cannot find video!|HTTP Error 404: Not Found)/i.test(obj.errorOutput);
-                                var Forbidden = /ERROR:\s*\[picta\]\s*.*: HTTP Error 403: Forbidden/.test(obj.errorOutput);
-                                var TimeoutError = /ERROR:\s*\[picta\]\s*.*: (?:HTTP Error 408|Read timed out)/i.test(obj.errorOutput);
-                                var BadCredentials = /ERROR:\s*\[picta\]\s*.*: HTTP Error (?:400|401)|This video is only available for registered users/i.test(obj.errorOutput);
-                                var PaidVideo = /ERROR:\s*\[picta\]\s*.*: This video is paid only/i.test(obj.errorOutput);
-                                var YTNotFound = /ERROR:\s*\[youtube\]\s*\w+:\s*Video unavailable/i.test(obj.errorOutput);
-                            }
+                            var isUnsupportedUrl = /ERROR:\s*\[generic\]\s*Unsupported URL:/.test(obj.errorOutput);
+                            let NotFound = /ERROR:\s*\[picta\]\s*.*: (?:Cannot find video!|HTTP Error 404: Not Found)/i.test(obj.errorOutput);
+                            let Forbidden = /ERROR:\s*\[picta\]\s*.*: HTTP Error 403: Forbidden/.test(obj.errorOutput);
+                            let TimeoutError = /ERROR:\s*\[picta\]\s*.*: (?:HTTP Error 408|Read timed out)/i.test(obj.errorOutput);
+                            let BadCredentials = /ERROR:\s*\[picta\]\s*.*: HTTP Error (?:400|401)|This video is only available for registered users/i.test(obj.errorOutput);
+                            let PaidVideo = /ERROR:\s*\[picta\]\s*.*: This video is paid only/i.test(obj.errorOutput);
+                            let YTNotFound = /ERROR:\s*\[youtube\]\s*\w+:\s*Video unavailable/i.test(obj.errorOutput);
 
                             if (TimeoutError || BadCredentials) {
                                 let errorMsg = TimeoutError ? "Read timed out" : "Crendenciales no validas, revise usuario y contraseña o netrc (picta)"
@@ -97,9 +99,11 @@ var msAbstractParser = (function() {
                                 isParseError: !isUnsupportedUrl
                             });
                         }
-                        resolve(JSON.parse(output));
-                    });
+                    }
+
+                    resolve(JSON.parse(output));
                 });
+            });
         },
 
         isSupportedSource: function(url) {

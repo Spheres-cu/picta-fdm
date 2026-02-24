@@ -66,8 +66,8 @@ function isSupportedBrowser(browser) {
   return SupportedBrowsers.some(pattern => pattern.test(browser));
 }
 
-function PythonErrorlog(obj) {
+function Pythonlog(obj) {
   let errLog = new String(obj.errorOutput)
   if (errLog.length)
-    console.log("Python Errors:", errLog);
+    console.log("Python log:", errLog);
 }
