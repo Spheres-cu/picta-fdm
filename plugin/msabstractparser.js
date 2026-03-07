@@ -52,7 +52,7 @@ var msAbstractParser = (function() {
                             var isUnsupportedUrl = /ERROR:\s*\[generic\]\s*Unsupported URL:/.test(obj.errorOutput);
                             let NotFound = /ERROR:\s*\[picta\]\s*.*: (?:Cannot find video!|HTTP Error 404: Not Found)/i.test(obj.errorOutput);
                             let Forbidden = /ERROR:\s*\[picta\]\s*.*: HTTP Error 403: Forbidden/.test(obj.errorOutput);
-                            let TimeoutError = /ERROR:\s*\[picta\]\s*.*: (?:HTTP Error 408|Read timed out)/i.test(obj.errorOutput);
+                            let TimeoutError = /ERROR:\s*\[picta\]\s*.*: (?:HTTP Error 408|Read timed out)/i.test(obj.errorOutput) || /ERROR:\s*\[youtube\]\s*.*: timed out/i.test(obj.errorOutput);
                             let BadCredentials = /ERROR:\s*\[picta\]\s*.*: HTTP Error (?:400|401)|This video is only available for registered users/i.test(obj.errorOutput);
                             let PaidVideo = /ERROR:\s*\[picta\]\s*.*: This video is paid only/i.test(obj.errorOutput);
                             let YTNotFound = /ERROR:\s*\[youtube\]\s*\w+:\s*Video unavailable/i.test(obj.errorOutput);
@@ -142,7 +142,7 @@ var msAbstractParser = (function() {
         },
 
         minIntevalBetweenQueryInfoDownloads: function() {
-            return 500;
+            return 300;
         },
     };
 
