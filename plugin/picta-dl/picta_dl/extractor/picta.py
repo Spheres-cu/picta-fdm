@@ -50,6 +50,12 @@ class PictaBaseIE(InfoExtractor):
         manifest_url = traverse_obj(result, ('url_manifiesto',))
         category = traverse_obj(result, ('categoria', 'tipologia', 'nombre'), expected_type=str)
         precios = traverse_obj(result, ('precios'), expected_type=list)
+        release_year = traverse_obj(
+            result,
+            ('categoria', 'pelicula', 'ano'),
+            ('categoria', 'capitulo', 'temporada', 'serie', 'ano'),
+            expected_type=int
+        )
 
         playlist_channel = traverse_obj(
             result,
@@ -72,6 +78,7 @@ class PictaBaseIE(InfoExtractor):
             "manifest_url": manifest_url,
             "playlist_channel": playlist_channel,
             "subtitle_url": url_or_none(subtitle_url),
+            "release_year": int_or_none(release_year),
         }
 
         if precios:
@@ -1039,28 +1046,20 @@ class PictaPlaylistIE(PictaIE):
         video_id = self._match_id(url)
         json_slug_url = API_BASE_URL + "publicacion/?format=json&slug_url_raw=%s" % video_id
         video = self._download_json(json_slug_url, video_id, "Downloading video JSON", headers=self._HEADERS)
-
         result = traverse_obj(video, ('results', 0))
         thumbnail = None
+
         if result:
-            model = traverse_obj(result, ('categoria', 'tipologia', 'modelo'))
-            if model == 'capitulo':
-                thumbnail = traverse_obj(
-                    result,
-                    ('categoria', 'capitulo', 'temporada', 'serie', 'imagen_secundaria')
-                )
-            elif model == 'pelicula':
-                thumbnail = traverse_obj(
-                    result,
-                    ('categoria', 'pelicula', 'imagen_secundaria')
-                )
-            else:
-                thumbnail = traverse_obj(
-                    result, ('url_imagen',)
-                )
+            thumbnail = traverse_obj(
+                result,
+                ('categoria', 'capitulo', 'temporada', 'serie', 'imagen_secundaria'),
+                ('categoria', 'pelicula', 'imagen_secundaria'),
+                ('url_imagen',),
+                expected_type=str
+            )
 
         if thumbnail:
-            thumbnail = f'{str(thumbnail) + "_1280x720"}'
+            thumbnail = f'{thumbnail}_1280x720'
             thumbnails = []
             thumb_info = {
                 "url": thumbnail,
