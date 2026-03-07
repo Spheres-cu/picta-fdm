@@ -14,10 +14,17 @@ var msParser = (function() {
                 var url = myObj.webpage_url || undefined;
 
                 try {
-                    let Updl_date = !msAbstractParser.isYoutubeSource(url) ? myObj.upload_date : undefined;
-                    if (Updl_date) {
-                        const converted = convertUploadDate(Updl_date);
+                    if (myObj.hasOwnProperty("upload_date") && myObj.upload_date) {
+                        const converted = convertUploadDate(myObj.upload_date);
                         myObj.upload_date = converted.iso8601;
+                    }
+
+                    if (!msAbstractParser.isYoutubeSource(url) && myObj.hasOwnProperty("release_year") && myObj.release_year) {
+                        if (myObj.hasOwnProperty("category") && myObj.category[0] === "Película") {
+                            let year = String(myObj.release_year);
+                            let title = String(myObj.title);
+                            myObj.title = !title.includes(year) ? String(title + " (" + year +")") : title;
+                        }
                     }
                     resolve(myObj);
                 } catch (e) {
