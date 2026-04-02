@@ -16,8 +16,8 @@ var msBatchVideoParser = (function() {
                     let isYTChannel = /^https?:\/\/(?:www\.)?youtube\.com\/channel\/[\w-]+/i.test(obj.url);
 
                     try {
-                        if (isYTChannel && res.hasOwnProperty("channel_id")) {
-                            if (res.hasOwnProperty("entries") && Array.isArray(res.entries) && res.entries.length > 1) {
+                        if (isYTChannel && res.channel_id) {
+                            if (res.entries && Array.isArray(res.entries) && res.entries.length > 1) {
                                let mapped_entries = mapEntries(res.entries);
                                 entries = parseYTentries(mapped_entries) || [];
 
@@ -28,12 +28,11 @@ var msBatchVideoParser = (function() {
                                 playlist.thumbnails = !playlist.thumbnails ? res.thumbnails : playlist.thumbnails;
                                 playlist.entries = entries;
                                 resolve(playlist);
-                                // console.log("PlaylistYTChannel results: ", JSON.stringify(playlist, null));
                                 return;
                             }
                         }
 
-                        if (res.hasOwnProperty("entries") && Array.isArray(res.entries)) {
+                        if (res.entries && Array.isArray(res.entries)) {
                             if (res.entries.length > 0) {
                                 playlist = res;
                                 if (msAbstractParser.isYoutubeSource(obj.url)) {
@@ -67,8 +66,7 @@ var msBatchVideoParser = (function() {
                             error: e.message,
                             isParseError: true
                         });
-                    }
-                    // console.log("Playlist results: ", JSON.stringify(playlist, null))                  
+                    }               
                 });
             });
         },

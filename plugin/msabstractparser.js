@@ -7,21 +7,21 @@ var msAbstractParser = (function() {
             console.log("parsing...");
 
             let args = [];
-            let systemUserAgent = new String(qtJsSystem.defaultUserAgent);
-            let AllowWbCookies = new Boolean(App.pluginsAllowWbCookies);
-            let WebBrowser = new String(qtJsSystem.defaultWebBrowser);
+            let systemUserAgent = String(qtJsSystem.defaultUserAgent);
+            let AllowWbCookies = Boolean(App.pluginsAllowWbCookies);
+            let WebBrowser = String(qtJsSystem.defaultWebBrowser);
             let isYoutubeUrl = msAbstractParser.isYoutubeSource(obj.url);
-
             let proxyUrl = qtJsNetworkProxyMgr.proxyForUrl(obj.url).url();
+
             if (proxyUrl) {
                 proxyUrl = proxyUrl.replace(/^https:\/\//i, 'http://'); // FDM bug workaround
                 args.push("--proxy", proxyUrl);
             }
 
-            args.push("-J", "--verbose");
+            args.push("-J", "--no-warnings");
 
             if (isYoutubeUrl) {
-                args.push("--ignore-config");
+                 args.push("--ignore-config");
             }
 
             let userAgent = obj.userAgent || systemUserAgent;
@@ -45,62 +45,27 @@ var msAbstractParser = (function() {
 
                 return new Promise(function(resolve, reject) {
                     let output = obj.output.trim();
-                    let isPlaylist = /\"_type\"\:\s*\"playlist\"/.test(output);
 
-                    if (!output || output[0] !== '{') {
+                    if (obj.errorOutput || output[0] !== '{') {
                         try {
-                            var isUnsupportedUrl = /ERROR:\s*\[generic\]\s*Unsupported URL:/.test(obj.errorOutput);
-                            let NotFound = /ERROR:\s*\[picta\]\s*.*: (?:Cannot find video!|HTTP Error 404: Not Found)/i.test(obj.errorOutput);
-                            let Forbidden = /ERROR:\s*\[picta\]\s*.*: HTTP Error 403: Forbidden/.test(obj.errorOutput);
-                            let TimeoutError = /ERROR:\s*\[picta\]\s*.*: (?:HTTP Error 408|Read timed out)/i.test(obj.errorOutput) || /ERROR:\s*\[youtube\]\s*.*: timed out/i.test(obj.errorOutput);
-                            let BadCredentials = /ERROR:\s*\[picta\]\s*.*: HTTP Error (?:400|401)|This video is only available for registered users/i.test(obj.errorOutput);
-                            let PaidVideo = /ERROR:\s*\[picta\]\s*.*: This video is paid only/i.test(obj.errorOutput);
-                            let YTNotFound = /ERROR:\s*\[youtube\]\s*\w+:\s*Video unavailable/i.test(obj.errorOutput);
+                            var PluginError = /ERROR:\s*\[(?:picta|picta:channel:playlist|picta:user:playlist|youtube)\]/i.test(obj.errorOutput);
+                            console.log("Plugin Error:", PluginError);
 
-                            if (TimeoutError || BadCredentials) {
-                                let errorMsg = TimeoutError ? "Read timed out" : "Crendenciales no validas, revise usuario y contraseña o netrc (picta)"
+                            if (PluginError){
+                                let ErrorMessage = parseErrorMessage(obj.errorOutput, {removePrefix: false});
                                 reject({
-                                    error: errorMsg,
+                                    error: ErrorMessage,
                                     isParseError: false
-                                })
-                                return;
-                            }
-
-                            if (YTNotFound) {
-                                let errorMsg = "This video has been removed by the uploader";
-                                console.log("Error:", errorMsg);
-                                reject({
-                                    error: errorMsg,
-                                    isParseError: false                                            
-                                })
-                                return;
-                            }
-
-                            if (!isPlaylist && !isYoutubeUrl) {
-                                if (NotFound || Forbidden || PaidVideo) {
-                                    let errorMsg = new String
-                                    if (PaidVideo) {
-                                        errorMsg = "Este vídeo es sólo por pago"
-                                    } else {
-                                        errorMsg = NotFound ? "Error HTTP 404: No encontrado" : "Error HTTP 403: Prohibido"
-                                    }
-                                    console.log("Error:", errorMsg);
-                                    reject({
-                                        error: errorMsg,
-                                        isParseError: false
-                                    })
-                                    return;
-                                }
+                                });
                             }
                         } catch (e) {
                             let ErrorMessage = "Parse error: " + e.message;
                             reject({
-                                error: isUnsupportedUrl ? "Unsupported URL" : ErrorMessage,
-                                isParseError: !isUnsupportedUrl
+                                error: ErrorMessage,
+                                isParseError: !PluginError
                             });
                         }
                     }
-
                     resolve(JSON.parse(output));
                 });
             });
@@ -108,7 +73,7 @@ var msAbstractParser = (function() {
 
         isSupportedSource: function(url) {
             const SupportedSource = [
-                /^https?:\/\/(?:www\.)?picta\.cu\/(?:medias|movie|embed)\/(?:\?v=)?(?<id>[\da-z-]+)(?:\?playlist=(?<playlist_id>[\da-z-]+))?/i,
+                /^https?:\/\/(?:www\.)?picta\.cu\/(?:medias|movie|documental|musical)\/(?<id>[\da-z-]+)(?:\?playlist=(?<playlist_id>[\da-z-]+))?/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/channel\/[\w-]+/i,

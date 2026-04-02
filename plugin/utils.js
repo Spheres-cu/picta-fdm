@@ -22,10 +22,10 @@ function convertUploadDate(upload_date) {
 }
 
 function mapEntries(items) { 
-  if (Array.isArray(items) && items.every(item => item.hasOwnProperty("entries"))) {
+  if (Array.isArray(items) && items.every(item => item.entries)) {
     let entries = [];
     items
-    .filter(item => item?.hasOwnProperty("title") && !/\bShorts\b/i.test(item.title))
+    .filter(item => item.title && !/\bShorts\b/i.test(item.title))
     .map((item) => {
       entries = entries.concat(item.entries);
     });
@@ -36,7 +36,7 @@ function mapEntries(items) {
 
 function parseYTentries(entries) {
   if (Array.isArray(entries)) {
-    let arrays = entries.filter(item => item.hasOwnProperty("title") && !/\[(?:Private|Deleted) video\]/i.test(item.title))
+    let arrays = entries.filter(item => item.title && !/\[(?:Private|Deleted) video\]/i.test(item.title))
     return arrays;
   }
   return entries;
@@ -67,7 +67,44 @@ function isSupportedBrowser(browser) {
 }
 
 function Pythonlog(obj) {
-  let errLog = new String(obj.errorOutput)
+  let errLog = String(obj.errorOutput)
   if (errLog.length)
-    console.log("Python log:", errLog);
+    console.log("Python error log:", errLog);
+}
+
+function parseErrorMessage(log, options = {}) {
+  const {
+    removePrefix = true,
+    removeCausedBy = true,
+    removeReportSection = true
+  } = options;
+
+  if (!log.startsWith('ERROR:')) {
+    return String(log);
+  }
+
+  let message = String(log);
+
+  // Remove the ERROR prefix with service and identifier
+  if (removePrefix) {
+    message = message.replace(/^ERROR:\s*\[[^\]]+\]\s*[^:]+:\s*/, '');
+  }
+
+  // Remove " (caused by ...)" section
+  if (removeCausedBy) {
+    message = message.split(' (caused by')[0];
+  }
+
+  // Remove " please report" section
+  if (removeReportSection) {
+    message = message.split('; please report')[0];
+    message = message.split(' please report')[0];
+  }
+
+  // Clean up
+  message = message.trim();
+  message = message.replace(/\s*\(caused by.*$/, '');
+  message = message.replace(/:\s*$/, '');
+
+  return message;
 }
