@@ -3,16 +3,16 @@
   "author": "https://github.com/Spheres-cu",
   "name": "Picta",
   "description": "Proporciona soporte para la descarga de videos desde el sitio www.picta.cu y Youtube.",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "icon": "logo.png",
   "mediaParser": true,
   "mediaListParser": true,
-  "minApiVersion": 8,
+  "minApiVersion": 9,
   "minFeaturesLevel": 3,
   "targetApiVersion": 9,
   "dependencies": {
     "Python": {"minVersion": "3.10"},
-    "Deno": {"minVersion": "2.0.0"}
+    "Deno": {"minVersion": "2.7.7"}
   },
   "permissions": [
     "launchPython",
