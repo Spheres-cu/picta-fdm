@@ -24,7 +24,7 @@ jobs:
           mv ${{ github.workspace }}/plugin/plugin.zip ${{ github.workspace }}/plugin/picta-fdm.fda
 
     - name: Store the plugin package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: plugin-package-distributions
         path: ${{ github.workspace }}/plugin/picta-fdm.fda
@@ -41,7 +41,7 @@ jobs:
     
     steps:
     - name: Download plugin dists
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: plugin-package-distributions
         path: dist/
