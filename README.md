@@ -76,10 +76,9 @@ Since version 1.1.4 you can download personal playlist and search results:
 1. Click on the three dots in the down right corner
 2. Click on `Agregar a lista de reproducción` make a new if don't exists and add the video.\
 ![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/add_playlist.png?raw=true)
-3. After finish of add all you wanted videos goto `Mis listas` in your profile in the up right corner.\
+3. After finish of add all you wanted videos goto `Mis listas` in your profile in the up right corner.
+4. Play some of you playlist video and copy the url from the browser address bar.\
 ![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/run_playlist.png?raw=true)
-
-4. Play some of you playlist video and copy the url from the browser address bar.
 5. Paste the copy url in FDM.
 
 #### For download searchs results
