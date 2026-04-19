@@ -43,4 +43,10 @@ from .genericembeds import (
     HTML5MediaEmbedIE,
     QuotedHTMLIE,
 )
-from .picta import PictaIE, PictaChannelPlaylistIE, PictaUserPlaylistIE
+from .picta import (
+    PictaChannelPlaylistIE,
+    PictaIE,
+    PictaSearchIE,
+    PictaSearchURLIE,
+    PictaUserPlaylistIE,
+)
