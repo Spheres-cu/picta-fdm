@@ -71,6 +71,41 @@ Basado en [picta-dl](https://github.com/oleksis/picta-dl) descargador de videos 
 
 5. Seleccione los archivos a descargar y dónde descargarlos.
 
+### Descargas opcionales
+
+Desde la versión 1.1.4, puedes descargar listas de reproducción personales y resultados de búsqueda:
+
+#### Para descargar una lista de reproducción personal, primero debes crear una
+
+- Desde la página del vídeo:
+
+1. Haz clic en los tres puntos de la esquina inferior derecha.
+2. Haz clic en `Agregar lista de reproducción`. Crea una nueva si no existe y agrega el video.\
+![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/add_playlist.png?raw=true)
+3. Una vez que hayas agregado todos los videos que deseas, ve a `Mis listas` en tu perfil, en la esquina superior derecha.
+4. Reproduce alguno de los videos de tu lista de reproducción y copia la URL de la barra de direcciones del navegador.\
+![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/run_playlist.png?raw=true)
+5. Pega la URL copiada en FDM.
+
+#### Para descargar resultados de búsqueda
+
+1. Crea una URL con este formato: `https://www.picta.cu/search/<consulta>`, donde `consulta` es tu parámetro de búsqueda.
+2. Pega la URL creada en FDM.
+
+**Ej. URLs de búsqueda:**
+
+```texto
+"https://www.picta.cu/search/*House of the Dragon T01*"
+"https://www.picta.cu/search/smallville"
+"https://picta.cu/search/*The Long Halloween*"
+"https://www.picta.cu/search/*The last of us T0*"
+"https://www.picta.cu/search/*What if* 3x"
+"https://www.picta.cu/search/*Super Mario La película"
+"https://www.picta.cu/search/*Superman*"
+```
+
+Verás una lista de reproducción de vídeos de tu búsqueda anterior.
+
 Disfrútala!
 
 ![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/usage_01.png?raw=true)

@@ -65,6 +65,42 @@ Based on [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Pi
 4. Paste the link in to FDM.
 5. Select what to download and where in the download windows of FDM.
 
+### Optional downloads
+
+Since version 1.1.4 you can download personal playlist and search results:
+
+#### For personal playlist download you must first create one
+
+- From the page of the video:
+
+1. Click on the three dots in the down right corner
+2. Click on `Agregar a lista de reproducción` make a new if don't exists and add the video.\
+![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/add_playlist.png?raw=true)
+3. After finish of add all you wanted videos goto `Mis listas` in your profile in the up right corner.\
+![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/run_playlist.png?raw=true)
+
+4. Play some of you playlist video and copy the url from the browser address bar.
+5. Paste the copy url in FDM.
+
+#### For download searchs results
+
+1. Create an url with this format: `https://www.picta.cu/search/<query>` where query is you search param.
+2. Paste the create url in FDM.
+
+**Ex. of searchs urls:**
+
+```text
+"https://www.picta.cu/search/*House of the Dragon S01*"
+"https://www.picta.cu/search/smallville"
+"https://picta.cu/search/*The Long Halloween*"
+"https://www.picta.cu/search/*The last of us S0*"
+"https://www.picta.cu/search/*What if* 3x"
+"https://www.picta.cu/search/*Super Mario La pelicula"
+"https://www.picta.cu/search/*Superman*"
+```
+
+You will see a video playlist of your previous search.
+
 Enjoy it !
 
 ![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/usage_01.png?raw=true)
