@@ -20,7 +20,6 @@ var msBatchVideoParser = (function() {
                             if (res.entries && Array.isArray(res.entries) && res.entries.length > 1) {
                                let mapped_entries = mapEntries(res.entries);
                                 entries = parseYTentries(mapped_entries) || [];
-
                                 playlist._type = "playlist";
                                 playlist.id = res.id;
                                 playlist.title = res.title;
@@ -51,7 +50,6 @@ var msBatchVideoParser = (function() {
                                 title: res.title,
                                 duration: res.duration
                             });
-
                             playlist._type = "playlist";
                             playlist.id = res.id;
                             playlist.title = res.title;

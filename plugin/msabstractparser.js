@@ -45,14 +45,14 @@ var msAbstractParser = (function() {
 
                 return new Promise(function(resolve, reject) {
                     let output = obj.output.trim();
+                    let isPlaylist = /\"_type\"\:\s*\"playlist\"/.test(output);
 
                     if (obj.errorOutput || output[0] !== '{') {
                         try {
-                            var PluginError = /ERROR:\s*\[(?:picta|picta:channel:playlist|picta:user:playlist|youtube)\]/i.test(obj.errorOutput);
+                            var PluginError = /^ERROR:\s*(\[(?:picta(?::channel:playlist|:user:playlist)?|youtube|facebook)\])?/i.test(obj.errorOutput);
                             console.log("Plugin Error:", PluginError);
-
                             if (PluginError){
-                                let ErrorMessage = parseErrorMessage(obj.errorOutput, {removePrefix: false});
+                                let ErrorMessage = isPlaylist ? parseErrorMessage(obj.errorOutput, {removePrefix: false}) : parseErrorMessage(obj.errorOutput);
                                 reject({
                                     error: ErrorMessage,
                                     isParseError: false
@@ -74,11 +74,22 @@ var msAbstractParser = (function() {
         isSupportedSource: function(url) {
             const SupportedSource = [
                 /^https?:\/\/(?:www\.)?picta\.cu\/(?:medias|movie|documental|musical)\/(?<id>[\da-z-]+)(?:\?playlist=(?<playlist_id>[\da-z-]+))?/i,
+                /https?:\/\/(?:www\.)?picta\.cu\/search\/(?<query>[^?#&]+)?/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/channel\/[\w-]+/i,
+                /^https?:\/\/(?:www\.)?youtube\.com\/(?:results|search)\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)/i,
+                /^https?:\/\/music\.youtube\.com\/search\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)/i,
                 /^https?:\/\/(?:www\.)?youtu\.be\/[\w-]+/i,
-                /^https?:\/\/(?:www\.)?facebook\.com\/[^/]+\/videos\/\d+/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/[^/]+\/videos\/[\dA-Za-z]+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/video\.php\?v=\d+(?:&.*)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/reel\/\d+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/watch\/live\/\?v=\d+(?:&.*)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/[^/]+\/posts\/[\dA-Za-z]+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/share\/[^/]+\/[\dA-Za-z]+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/story\.php\?story_fbid=[\dA-Za-z]+(?:&.*)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/permalink\.php\?story_fbid=[\dA-Za-z]+(?:&.*)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/groups\/[^/]+\/permalink\/\d+(?:\/)?$/i,
             ];
             return SupportedSource.some(pattern => pattern.test(url));
         },
@@ -88,8 +99,18 @@ var msAbstractParser = (function() {
                 /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/channel\/[\w-]+/i,
+                /^https?:\/\/(?:www\.)?youtube\.com\/(?:results|search)\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)/i,
+                /^https?:\/\/music\.youtube\.com\/search\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)/i,
                 /^https?:\/\/(?:www\.)?youtu\.be\/[\w-]+/i,
-                /^https?:\/\/(?:www\.)?facebook\.com\/[^/]+\/videos\/\d+/i
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/[^/]+\/videos\/[\dA-Za-z]+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/video\.php\?v=\d+(?:&.*)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/reel\/\d+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/watch\/live\/\?v=\d+(?:&.*)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/[^/]+\/posts\/[\dA-Za-z]+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/share\/[^/]+\/[\dA-Za-z]+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/story\.php\?story_fbid=[\dA-Za-z]+(?:&.*)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/permalink\.php\?story_fbid=[\dA-Za-z]+(?:&.*)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/groups\/[^/]+\/permalink\/\d+(?:\/)?$/i,
             ];
             return SupportedSource.some(pattern => pattern.test(url));
         },

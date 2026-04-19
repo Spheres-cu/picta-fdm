@@ -68,8 +68,12 @@ function isSupportedBrowser(browser) {
 
 function Pythonlog(obj) {
   let errLog = String(obj.errorOutput)
+  // let outputLog = String(obj.output)
   if (errLog.length)
     console.log("Python error log:", errLog);
+
+  // if (outputLog.length)
+  // console.log("Python output log:", outputLog);
 }
 
 function parseErrorMessage(log, options = {}) {
@@ -90,20 +94,19 @@ function parseErrorMessage(log, options = {}) {
     message = message.replace(/^ERROR:\s*\[[^\]]+\]\s*[^:]+:\s*/, '');
   }
 
-  // Remove " (caused by ...)" section
+  // Clean up
   if (removeCausedBy) {
     message = message.split(' (caused by')[0];
   }
 
-  // Remove " please report" section
   if (removeReportSection) {
     message = message.split('; please report')[0];
     message = message.split(' please report')[0];
   }
 
-  // Clean up
   message = message.trim();
   message = message.replace(/\s*\(caused by.*$/, '');
+  message =message.replace(/\s*Failed to download MPD manifest:\s*/, '');
   message = message.replace(/:\s*$/, '');
 
   return message;
