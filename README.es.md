@@ -95,12 +95,12 @@ Desde la versión 1.1.4, puedes descargar listas de reproducción personales y r
 **Ej. URLs de búsqueda:**
 
 ```texto
-"https://www.picta.cu/search/*House of the Dragon T01*"
+"https://www.picta.cu/search/*House of the Dragon S01*"
 "https://www.picta.cu/search/smallville"
 "https://picta.cu/search/*The Long Halloween*"
-"https://www.picta.cu/search/*The last of us T0*"
+"https://www.picta.cu/search/*The last of us S0*"
 "https://www.picta.cu/search/*What if* 3x"
-"https://www.picta.cu/search/*Super Mario La película"
+"https://www.picta.cu/search/*Super Mario La pelicula"
 "https://www.picta.cu/search/*Superman*"
 ```
 
