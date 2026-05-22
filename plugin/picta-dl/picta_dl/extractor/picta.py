@@ -113,41 +113,36 @@ class PictaIE(PictaBaseIE):
         r'(?:\?playlist=(?P<playlist_id>[\da-z-]+))?'
     )
 
-    _TESTS = [
-        {
-            'url': 'https://www.picta.cu/medias/presunto-inocente-1x06-2024-07-14-20-03-18-226686',
-            'file': 'Presunto inocente 1x06.mp4',
-            'md5': '69b108601d67f8b49d665b801c493ddf',
-            'info_dict': {
-                'id': '38868',
-                'slug_url': 'presunto-inocente-1x06-2024-07-14-20-03-18-226686',
-                'ext': 'mp4',
-                'title': 'Presunto inocente 1x06',
-                'thumbnail': r're:^https?://.*imagen/img.*\.png$',
-                'duration': 2529,
-                'upload_date': '20240714',
-                'description': (
-                    'Un asesinato horrible trastoca a la Fiscalía de Chicago '
-                    'cuando uno de los suyos es sospechoso del crimen. '
-                    'El acusado deberá luchar por mantener unida a su familia.'),
-                'uploader': 'leodanis',
-                'timestamp': 1720987398,
-                'release_year': 2024,
-            },
+    _TESTS = [{
+        'url': 'https://www.picta.cu/medias/presunto-inocente-1x06-2024-07-14-20-03-18-226686',
+        'file': 'Presunto inocente 1x06.mp4',
+        'md5': '69b108601d67f8b49d665b801c493ddf',
+        'info_dict': {
+            'id': '38868',
+            'slug_url': 'presunto-inocente-1x06-2024-07-14-20-03-18-226686',
+            'ext': 'mp4',
+            'title': 'Presunto inocente 1x06',
+            'thumbnail': r're:^https?://.*imagen/img.*\.png$',
+            'duration': 2529,
+            'upload_date': '20240714',
+            'description': (
+                'Un asesinato horrible trastoca a la Fiscalía de Chicago '
+                'cuando uno de los suyos es sospechoso del crimen. '
+                'El acusado deberá luchar por mantener unida a su familia.'),
+            'uploader': 'leodanis',
+            'timestamp': 1720987398,
+            'release_year': 2024,
         },
-        {
-            'url': 'https://www.picta.cu/movie/dioses-rotos-tuovh5s2oodjg5bc',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://www.picta.cu/documental/ascenso-imperio-romano-6atcoxx2wmvcblsk',
-            'only_matching': True,
-        },
-        {
-            'url': 'https://www.picta.cu/musical/ronkalunga-refranero-gtiu6juzuo3e4tex',
-            'only_matching': True,
-        },
-    ]
+    }, {
+        'url': 'https://www.picta.cu/movie/dioses-rotos-tuovh5s2oodjg5bc',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.picta.cu/documental/ascenso-imperio-romano-6atcoxx2wmvcblsk',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.picta.cu/musical/ronkalunga-refranero-gtiu6juzuo3e4tex',
+        'only_matching': True,
+    }]
 
     _LANGUAGES_CODES = ['es']
     _LANG_ES = _LANGUAGES_CODES[0]
@@ -172,14 +167,14 @@ class PictaIE(PictaBaseIE):
             self._HEADERS = {'Authorization': f'Bearer {self._access_token}'}
 
     def _valid_token(self, username, token_cache) -> bool:
-        API_USER_ENDPOINT = API_BASE_URL + 'usuario/me/?format=json'
         try:
             token_response = self._download_json(
-                API_USER_ENDPOINT, video_id=None,
+                API_BASE_URL + 'usuario/me/?format=json', video_id=None,
                 note='Checking cached token',
                 errnote=False, fatal=False,
                 headers={'Authorization': f'Bearer {token_cache}'},
-                expected_status=True)
+                expected_status=True,
+                impersonate=True)
 
             if token_response:
                 return token_response['username'] == username
@@ -196,8 +191,7 @@ class PictaIE(PictaBaseIE):
             'client_id': self.API_CLIENT_ID,
             'client_secret': '',
             'username': username,
-            'password': password,
-        })
+            'password': password})
         token_cache = {}
         try:
             self.report_login()
@@ -205,7 +199,8 @@ class PictaIE(PictaBaseIE):
                 self.API_TOKEN_URL, None,
                 note='Fetching access token', data=data,
                 headers={'Content-Type': 'application/x-www-form-urlencoded'},
-                fatal=True, expected_status=True)
+                fatal=True, expected_status=True,
+                impersonate=True)
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.status in (400, 401, 403):
                 resp = self._parse_json(
@@ -213,8 +208,7 @@ class PictaIE(PictaBaseIE):
                 message = str(resp.get('error_description'))
                 self.report_warning(
                     f'{message} This video is only available for registered users. '
-                    f'{self._login_hint("password")}',
-                )
+                    f'{self._login_hint("password")}')
             raise ExtractorError(e.orig_msg, expected=True)
 
         if token_data and 'access_token' in token_data:
@@ -222,8 +216,7 @@ class PictaIE(PictaBaseIE):
             token_cache = {
                 'access_token': token_data['access_token'],
                 'refresh_token': token_data['refresh_token'],
-                'expires_in': expires,
-            }
+                'expires_in': expires}
             self.cache.store(self._NETRC_MACHINE, username, token_cache)
         else:
             return None
@@ -255,7 +248,7 @@ class PictaIE(PictaBaseIE):
             sub_formats = []
             for ext in self._SUBTITLE_FORMATS:
                 sub_formats.append(
-                    {'name': 'Spanish', 'url': sub_url, 'ext': ext })
+                    {'name': 'Spanish', 'url': sub_url, 'ext': ext})
             sub_lang_list.update({f'{lang}': sub_formats})
 
         if not sub_lang_list:
@@ -786,7 +779,7 @@ class PictaIE(PictaBaseIE):
                 traverse_obj(
                     seasons, ('results', lambda i, s: str(s.get('id')) == str(info.get('season_id'))),
                     get_all=False),
-                {'season_number': ('numero', {int_or_none}) }))  # type: ignore
+                {'season_number': ('numero', {int_or_none})}))  # type: ignore
 
         availability = self._availability(**traverse_obj(video, {
             'is_private': ('pr', {lambda x: str(x) == 'false'}),
@@ -881,7 +874,7 @@ class PictaPlaylistIE(PictaIE):
                 json_url, playlist_id, 'Downloading playlist JSON', headers=self._HEADERS)
             assert isinstance(playlist, dict) and playlist.get('count', 0) >= 1
         except AssertionError:
-            raise ExtractorError('Playlist no exists!')
+            raise ExtractorError('Playlist not exists!')
 
         info_playlist = self._extract_playlist(playlist, playlist_id)
         playlist_entries = info_playlist.get('entries')
@@ -918,7 +911,9 @@ class PictaPlaylistIE(PictaIE):
             json_url, playlist_id, 'Downloading playlist JSON', headers=self._HEADERS)
 
         info = self._extract_playlist(playlist, playlist_id)
-        info_playlist = self.playlist_result(entries, playlist_id, info.get('title'))
+        info_playlist = self.playlist_result(
+            entries, playlist_id,
+            info.get('title'), self.IE_DESC)
 
         thumbnail = info.get('thumbnail') or traverse_obj(
             video,
@@ -958,19 +953,17 @@ class PictaChannelPlaylistIE(PictaPlaylistIE):
         r'\?playlistchannel=(?P<playlist_id>[\da-z-]+)$'
     )
 
-    _TESTS = [
-        {
-            'url': 'https://www.picta.cu/medias/monarch-legado-monstruos-s02e01-7fu48wnjb6jrphoq',
-            'info_dict': {
-                'id': 55685,
-                'title': 'Monarch: el legado de los monstruos S02E01',
-                'thumbnail': r're:^https?://.*imagen/img.*\.jpeg$',
-                'category': 'Serie',
-                'playlist_channel': 'Monarch: El legado de los monstruos - Temp 2',
-                'playlist_channel_id': '56161',
-            },
+    _TESTS = [{
+        'url': 'https://www.picta.cu/medias/monarch-legado-monstruos-s02e01-7fu48wnjb6jrphoq',
+        'info_dict': {
+            'id': 55685,
+            'title': 'Monarch: el legado de los monstruos S02E01',
+            'thumbnail': r're:^https?://.*imagen/img.*\.jpeg$',
+            'category': 'Serie',
+            'playlist_channel': 'Monarch: El legado de los monstruos - Temp 2',
+            'playlist_channel_id': '56161',
         },
-    ]
+    }]
 
 
 # noinspection PyAbstractClass
@@ -984,17 +977,15 @@ class PictaUserPlaylistIE(PictaPlaylistIE):
         r'\?playlist=(?P<playlist_id>[\da-z-]+)$'
     )
 
-    _TESTS = [
-        {
-            'url': 'https://www.picta.cu/medias/peaky-blinders-the-immortal-man-9f7rze22y4xzl6wc?playlist=22876',
-            'info_dict': {
-                'id': 22876,
-                'title': 'test',
-                '_type': 'playlist',
-                'thumbnail': r're:^https?://.*imagen/img.*\.jpeg$',
-            },
+    _TESTS = [{
+        'url': 'https://www.picta.cu/medias/peaky-blinders-the-immortal-man-9f7rze22y4xzl6wc?playlist=22876',
+        'info_dict': {
+            'id': 22876,
+            'title': 'test',
+            '_type': 'playlist',
+            'thumbnail': r're:^https?://.*imagen/img.*\.jpeg$',
         },
-    ]
+    }]
 
     def _extract_playlist(self, playlist, playlist_id=None, require_title=True):
         result = traverse_obj(playlist, ('results', 0), {dict})
@@ -1035,44 +1026,101 @@ class PictaSearchIE(PictaIE, SearchInfoExtractor):
     }]
     _MAX_RESULTS = 100
     PAGE_SIZE = 20
-    API_SEARCH_ENDPOINT = API_BASE_URL + 'publicacion/'
+
+    def _entries(self, video):
+        video_id = video.get('id')
+        video_url = (
+            ROOT_BASE_URL
+            + 'medias/'
+            + video.get('slug_url')
+            + '/?playlist=pictasearch')
+        video_title = video.get('nombre')
+        duration = parse_duration(video.get('duracion'))
+        entries = self.url_result(video_url, PictaIE.ie_key(), video_id, video_title)
+        entries.update({'duration': duration})
+        return entries
+
+    def _search_series_results(self, query):
+        serie_search = self._download_json(
+            API_BASE_URL + 'serie/', query,
+            note=f'Searching serie: {query}',
+            query={
+                'format': 'json',
+                'nombre__contains': query},
+            headers=self._HEADERS)
+
+        results = traverse_obj(serie_search, ('results'), {list})
+        if not results or not isinstance(results, list):
+            raise ExtractorError(
+                f'Could not find search results for query "{query}"', expected=True)
+
+        serie_id = traverse_obj(traverse_obj(results, 0), ('pelser_id'), {int_or_none})
+        seasons = self._download_json(
+            API_BASE_URL + 'temporada/', query,
+            note=f'Downloading serie id: {serie_id}',
+            query={'serie_pelser_id': serie_id, 'format': 'json'},
+            headers=self._HEADERS)
+        seasons_id = [*traverse_obj(
+            seasons, ('results', lambda i, s: s.get('id'), ('id')),
+            get_all=True)]  # type: ignore
+
+        for s in range(len(seasons_id)):
+            season = seasons_id[s]
+            for i in itertools.count(1):
+                serie_response = self._download_json(
+                    API_BASE_URL + 'publicacion/', query,
+                    note=f'Downloading season id: {season} page: {i}',
+                    query={
+                        'temporada_id': season,
+                        'page': i,
+                        'page_size': self.PAGE_SIZE,
+                        'ordering': '-fecha_publicado',
+                        'format': 'json'},
+                    headers=self._HEADERS)
+                serie = traverse_obj(serie_response, ('results'), {list})
+                if not serie or not isinstance(serie, list):
+                    self.write_debug(
+                        f'Could not find results for season: {season}')
+                    break
+                else:
+                    for video in serie:
+                        entries = self._entries(video)
+                        yield entries
+                next_page = traverse_obj(serie_response, ('next'), {int_or_none})
+                if next_page is None:
+                    break
 
     def _search_results(self, query):
         next_page = None
+        results = None
+
         for i in itertools.count(1):
             search_response = self._download_json(
-                self.API_SEARCH_ENDPOINT, query,
+                API_BASE_URL + 'publicacion/', query,
                 note=f'Downloading search page: {i}',
                 query={
                     'page': i,
                     'page_size': self.PAGE_SIZE,
                     'nombre__contains': query,
-                    'format':'json'},
+                    'format': 'json'},
                 headers=self._HEADERS)
-            results = traverse_obj(search_response, ('results'), {list})
-            if not results or not isinstance(results, list):
-                raise ExtractorError(
-                    f'Could not find search results for query "{query}"', expected=True)
-            for video in results:
-                video_id = video.get('id')
-                video_url = (
-                    ROOT_BASE_URL
-                    + 'medias/'
-                    + video.get('slug_url')
-                    + '/?playlist=pictasearch')
-                video_title = video.get('nombre')
-                duration = parse_duration(video.get('duracion'))
-                entries = self.url_result(video_url, PictaIE.ie_key(), video_id, video_title)
-                entries.update({'duration': duration})
-                yield entries
 
+            results = traverse_obj(search_response, ('results'), {list})
+            if results and isinstance(results, list):
+                for video in results:
+                    entries = self._entries(video)
+                    yield entries
             next_page = traverse_obj(search_response, ('next'), {int_or_none})
-            if not results or next_page is None or i >= math.ceil(self._MAX_RESULTS / self.PAGE_SIZE):
+            if next_page is None or i >= math.ceil(self._MAX_RESULTS / self.PAGE_SIZE):
                 break
+
+        if not results:
+            yield from self._search_series_results(query)
 
     def _real_extract(self, url):
         prefix, query = self._match_valid_url(url).group('prefix', 'query')
         parse_query = urllib.parse.unquote_plus(query)
+
         if prefix == '':
             return self._get_n_results(parse_query, 1)
         elif prefix == 'all':
@@ -1082,7 +1130,8 @@ class PictaSearchIE(PictaIE, SearchInfoExtractor):
             if n <= 0:
                 raise ExtractorError(f'invalid download number {n} for query "{parse_query}"')
             elif n > self._MAX_RESULTS:
-                self.report_warning('%s returns max %i results (you requested %i)' % (self._SEARCH_KEY, self._MAX_RESULTS, n))
+                self.report_warning(
+                    '%s returns max %i results (you requested %i)' % (self._SEARCH_KEY, self._MAX_RESULTS, n))
                 n = self._MAX_RESULTS
             return self._get_n_results(parse_query, n)
 
@@ -1104,15 +1153,14 @@ class PictaSearchURLIE(PictaSearchIE):
             'title': 'smalville',
         },
         'playlist_count': 56,
+    }, {
+        'url': 'https://www.picta.cu/search/super mario',
+        'info_dict': {
+            'id': 'picta:search_url: super mario',
+            'title': 'super mario',
         },
-        {
-            'url': 'https://www.picta.cu/search/super mario',
-            'info_dict': {
-                'id': 'picta:search_url: super mario',
-                'title': 'super mario',
-            },
-            'playlist_count': 4,
-        }]
+        'playlist_count': 4,
+    }]
 
     def _real_extract(self, url):
         query = self._match_valid_url(url).group('query')
@@ -1121,3 +1169,27 @@ class PictaSearchURLIE(PictaSearchIE):
             self._search_results(parse_query),
             f'{self.IE_NAME}: {parse_query}',
             parse_query, self.IE_DESC)
+
+
+class PictaSearchSerieIE(PictaSearchURLIE):
+    IE_DESC = 'Picta search Serie'
+    IE_NAME = f'{PictaSearchIE.IE_NAME}' + '_serie'
+    _VALID_URL = r'https?://(?:www\.)?picta\.cu/serie/(?P<query>[^?#&]+)?'
+    _TESTS = [{
+        'url': 'https://www.picta.cu/serie/smallville',
+        'info_dict': {
+            'id': 'picta:search_serie: Gravity Falls',
+            'title': 'Gravity Falls',
+        },
+        'playlist_count': 47,
+    }, {
+        'url': 'https://www.picta.cu/serie/Primal',
+        'info_dict': {
+            'id': 'picta:search_serie: Primal',
+            'title': 'Primal',
+        },
+        'playlist_count': 30,
+    }]
+
+    def _search_results(self, query):
+        yield from self._search_series_results(query)

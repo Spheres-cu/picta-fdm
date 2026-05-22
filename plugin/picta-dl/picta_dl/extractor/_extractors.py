@@ -47,6 +47,7 @@ from .picta import (
     PictaChannelPlaylistIE,
     PictaIE,
     PictaSearchIE,
+    PictaSearchSerieIE,
     PictaSearchURLIE,
     PictaUserPlaylistIE,
 )
