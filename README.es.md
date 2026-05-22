@@ -10,6 +10,8 @@
 
 ![Picta-fdm Logo](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/logo-miniaturas.png?raw=true)
 
+[![Free Download Manager](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/fdm_2.png?raw=true)](https://www.freedownloadmanager.org/ "Free Download Manager")
+
 Proporciona soporte para descargar videos de [www.picta.cu](https://picta.cu) y [Youtube](https://www.youtube.com) es un complemento para [Free download Manager](https://www.freedownloadmanager.org/).
 
 Basado en [picta-dl](https://github.com/oleksis/picta-dl) descargador de videos para Picta.cu y [yt-dlp](https://github.com/yt-dlp/yt-dlp)
@@ -104,9 +106,24 @@ Desde la versión 1.1.4, puedes descargar listas de reproducción personales y r
 "https://www.picta.cu/search/*Superman*"
 ```
 
+#### Search for series
+
+1. Cree una URL con este formato: `https://www.picta.cu/serie/<consulta>` donde consulta es el parámetro de búsqueda de la serie.
+2. Pegue la URL creada en FDM.
+
+> En este método de búsqueda intenta pasar el nombre exacto de la serie o un patrón entre ** evitando pronombres como: *el, de, un, etc.*
+
+**Ejemplos de URL de búsqueda de series:**
+
+```text
+"https://picta.cu/serie/*House Dragon*"
+"https://picta.cu/serie/Gravity falls"
+"https://picta.cu/serie/56 días"
+```
+
 Verás una lista de reproducción de vídeos de tu búsqueda anterior.
 
-Disfrútala!
+¡Diviértete, descarga, buena suerte, dame una estrella! :wink:
 
 ![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/usage_01.png?raw=true)
 

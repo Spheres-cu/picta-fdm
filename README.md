@@ -10,6 +10,8 @@
 
 ![Picta-fdm Logo](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/logo-miniaturas.png?raw=true)
 
+[![Free Download Manager](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/fdm_1.png?raw=true)](https://www.freedownloadmanager.org/ "Free Download Manager")
+
 Provides support for downloading videos from [www.picta.cu](https://picta.cu) and [Youtube](https://www.youtube.com) it is a Add-on for [Free download Manager](https://www.freedownloadmanager.org/).
 
 Based on [picta-dl](https://github.com/oleksis/picta-dl) video downloader for Picta.cu and [yt-dlp](https://github.com/yt-dlp/yt-dlp)
@@ -83,10 +85,10 @@ Since version 1.1.4 you can download personal playlist and search results:
 
 #### For download searchs results
 
-1. Create an url with this format: `https://www.picta.cu/search/<query>` where query is you search param.
-2. Paste the create url in FDM.
+1. Create a url with this format: `https://www.picta.cu/search/<query>` where query is you search param.
+2. Paste the created url in FDM.
 
-**Ex. of searchs urls:**
+**Examples of searches urls:**
 
 ```text
 "https://www.picta.cu/search/*House of the Dragon S01*"
@@ -98,9 +100,24 @@ Since version 1.1.4 you can download personal playlist and search results:
 "https://www.picta.cu/search/*Superman*"
 ```
 
+#### Search for series
+
+1. Create a url with this format: `https://www.picta.cu/serie/<query>` where query is the search param of the series.
+2. Paste the create url in FDM.
+
+> In this search method try to pass the exact series name or a pattern between  ** avoiding pronouns like: *the,of,a, etc.*
+
+**Examples of series search urls:**
+
+```text
+"https://picta.cu/serie/*House Dragon*"
+"https://picta.cu/serie/Gravity falls"
+"https://picta.cu/serie/56 días"
+```
+
 You will see a video playlist of your previous search.
 
-Enjoy it !
+Have fun, download, good luck, give me a star! :wink:
 
 ![Picta-fdm usage](https://github.com/Spheres-cu/picta-fdm/blob/main/.pictures/usage_01.png?raw=true)
 
