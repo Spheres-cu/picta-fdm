@@ -74,7 +74,8 @@ var msAbstractParser = (function() {
         isSupportedSource: function(url) {
             const SupportedSource = [
                 /^https?:\/\/(?:www\.)?picta\.cu\/(?:medias|movie|documental|musical)\/(?<id>[\da-z-]+)(?:\?playlist=(?<playlist_id>[\da-z-]+))?/i,
-                /https?:\/\/(?:www\.)?picta\.cu\/search\/(?<query>[^?#&]+)?/i,
+                /^https?:\/\/(?:www\.)?picta\.cu\/search\/(?<query>[^?#&]+)?/i,
+                /^https?:\/\/(?:www\.)?picta\.cu\/serie\/(?<query>[^?#&]+)?/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/watch\?v=[\w-]+/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+/i,
                 /^https?:\/\/(?:www\.)?youtube\.com\/channel\/[\w-]+/i,
@@ -90,6 +91,7 @@ var msAbstractParser = (function() {
                 /^https?:\/\/(?:www\.|m\.)?facebook\.com\/story\.php\?story_fbid=[\dA-Za-z]+(?:&.*)?$/i,
                 /^https?:\/\/(?:www\.|m\.)?facebook\.com\/permalink\.php\?story_fbid=[\dA-Za-z]+(?:&.*)?$/i,
                 /^https?:\/\/(?:www\.|m\.)?facebook\.com\/groups\/[^/]+\/permalink\/\d+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/watch\/\?v=\d+(?:&.*)?$/i
             ];
             return SupportedSource.some(pattern => pattern.test(url));
         },
@@ -111,6 +113,7 @@ var msAbstractParser = (function() {
                 /^https?:\/\/(?:www\.|m\.)?facebook\.com\/story\.php\?story_fbid=[\dA-Za-z]+(?:&.*)?$/i,
                 /^https?:\/\/(?:www\.|m\.)?facebook\.com\/permalink\.php\?story_fbid=[\dA-Za-z]+(?:&.*)?$/i,
                 /^https?:\/\/(?:www\.|m\.)?facebook\.com\/groups\/[^/]+\/permalink\/\d+(?:\/)?$/i,
+                /^https?:\/\/(?:www\.|m\.)?facebook\.com\/watch\/\?v=\d+(?:&.*)?$/i
             ];
             return SupportedSource.some(pattern => pattern.test(url));
         },
