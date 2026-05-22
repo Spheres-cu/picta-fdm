@@ -4,16 +4,12 @@ import asyncio
 import http.cookies
 import os
 import queue
-import random
 import sys
 import threading
-import time
 import warnings
-from collections.abc import AsyncGenerator, Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager, contextmanager, suppress
-from dataclasses import dataclass
-from datetime import timedelta
+from collections.abc import Callable
 from io import BytesIO
 from typing import (
     TYPE_CHECKING,
@@ -26,9 +22,10 @@ from typing import (
     cast,
 )
 from urllib.parse import urlparse
+from datetime import timedelta
 
 from ..aio import AsyncCurl
-from ..const import CurlFollow, CurlHttpVersion, CurlInfo, CurlOpt
+from ..const import CurlHttpVersion, CurlInfo, CurlOpt
 from ..curl import Curl, CurlError, CurlMime
 from ..utils import CurlCffiWarning
 from .cookies import Cookies, CookieTypes, CurlMorsel
@@ -36,14 +33,8 @@ from .exceptions import RequestException, SessionClosed, code2error
 from .headers import Headers, HeaderTypes
 from .impersonate import BrowserTypeLiteral, ExtraFingerprints, ExtraFpDict
 from .models import STREAM_END, Response
-from .utils import NOT_SET, HttpVersionLiteral, NotSetType, set_curl_options
-from .websockets import (
-    AsyncWebSocket,
-    AsyncWebSocketContext,
-    WebSocket,
-    WebSocketError,
-    WebSocketRetryStrategy,
-)
+from .utils import HttpVersionLiteral, not_set, set_curl_options
+from .websockets import AsyncWebSocket, WebSocket, WebSocketError
 
 # Added in 3.13: https://docs.python.org/3/library/typing.html#typing.TypeVar.__default__
 if sys.version_info >= (3, 13):
@@ -73,13 +64,11 @@ if TYPE_CHECKING:
         verify: bool
         timeout: Union[float, tuple[float, float]]
         trust_env: bool
-        allow_redirects: Union[bool, CurlFollow, str]
+        allow_redirects: bool
         max_redirects: int
-        retry: Union[int, RetryStrategy]
         impersonate: Optional[BrowserTypeLiteral]
         ja3: Optional[str]
         akamai: Optional[str]
-        perk: Optional[str]
         extra_fp: Optional[Union[ExtraFingerprints, ExtraFpDict]]
         default_headers: bool
         default_encoding: Union[str, Callable[[bytes], str]]
@@ -102,7 +91,7 @@ if TYPE_CHECKING:
         files: Optional[dict]
         auth: Optional[tuple[str, str]]
         timeout: Optional[Union[float, tuple[float, float], object]]
-        allow_redirects: Optional[Union[bool, CurlFollow, str]]
+        allow_redirects: Optional[bool]
         max_redirects: Optional[int]
         proxies: Optional[ProxySpec]
         proxy: Optional[str]
@@ -114,7 +103,6 @@ if TYPE_CHECKING:
         impersonate: Optional[BrowserTypeLiteral]
         ja3: Optional[str]
         akamai: Optional[str]
-        perk: Optional[str]
         extra_fp: Optional[Union[ExtraFingerprints, ExtraFpDict]]
         default_headers: Optional[bool]
         default_encoding: Union[str, Callable[[bytes], str]]
@@ -168,37 +156,6 @@ def _peek_aio_queue(q: asyncio.Queue, default=None):
         return default
 
 
-RetryBackoff = Literal["linear", "exponential"]
-
-
-@dataclass
-class RetryStrategy:
-    count: int
-    delay: float = 0.0
-    jitter: float = 0.0
-    backoff: RetryBackoff = "linear"
-
-
-def _normalize_retry(retry: Optional[Union[int, RetryStrategy]]) -> RetryStrategy:
-    if retry is None:
-        retry = 0
-    if isinstance(retry, RetryStrategy):
-        strategy = retry
-    elif isinstance(retry, int):
-        strategy = RetryStrategy(count=retry)
-    else:
-        raise TypeError("retry must be an int or RetryStrategy")
-    if strategy.count < 0:
-        raise ValueError("retry.count must be >= 0")
-    if strategy.delay < 0:
-        raise ValueError("retry.delay must be >= 0")
-    if strategy.jitter < 0:
-        raise ValueError("retry.jitter must be >= 0")
-    if strategy.backoff not in ("linear", "exponential"):
-        raise ValueError("retry.backoff must be 'linear' or 'exponential'")
-    return strategy
-
-
 class BaseSession(Generic[R]):
     """Provide common methods for setting curl options and reading info in sessions."""
 
@@ -212,22 +169,20 @@ class BaseSession(Generic[R]):
         proxy: Optional[str] = None,
         proxy_auth: Optional[tuple[str, str]] = None,
         base_url: Optional[str] = None,
-        params: Optional[dict[str, object]] = None,
+        params: Optional[dict] = None,
         verify: bool = True,
         timeout: Union[float, tuple[float, float]] = 30,
         trust_env: bool = True,
-        allow_redirects: Union[bool, CurlFollow, str] = True,
+        allow_redirects: bool = True,
         max_redirects: int = 30,
-        retry: Optional[Union[int, RetryStrategy]] = 0,
         impersonate: Optional[BrowserTypeLiteral] = None,
         ja3: Optional[str] = None,
         akamai: Optional[str] = None,
-        perk: Optional[str] = None,
         extra_fp: Optional[Union[ExtraFingerprints, ExtraFpDict]] = None,
         default_headers: bool = True,
         default_encoding: Union[str, Callable[[bytes], str]] = "utf-8",
-        curl_options: Optional[dict[CurlOpt, str]] = None,
-        curl_infos: Optional[list[object]] = None,
+        curl_options: Optional[dict] = None,
+        curl_infos: Optional[list] = None,
         http_version: Optional[Union[CurlHttpVersion, HttpVersionLiteral]] = None,
         debug: bool = False,
         interface: Optional[str] = None,
@@ -246,11 +201,9 @@ class BaseSession(Generic[R]):
         self.trust_env = trust_env
         self.allow_redirects = allow_redirects
         self.max_redirects = max_redirects
-        self.retry = _normalize_retry(retry)
         self.impersonate = impersonate
         self.ja3 = ja3
         self.akamai = akamai
-        self.perk = perk
         self.extra_fp = extra_fp
         self.default_headers = default_headers
         self.default_encoding = default_encoding
@@ -292,12 +245,7 @@ class BaseSession(Generic[R]):
             )
 
     def _parse_response(
-        self,
-        curl: Curl,
-        buffer: BytesIO,
-        header_buffer: BytesIO,
-        default_encoding: Union[str, Callable[[bytes], str]],
-        discard_cookies: bool,
+        self, curl, buffer, header_buffer, default_encoding, discard_cookies
     ) -> R:
         c = curl
         rsp = cast(R, self.response_class(c))
@@ -381,16 +329,6 @@ class BaseSession(Generic[R]):
         if self._closed:
             raise SessionClosed("Session is closed, cannot send request.")
 
-    def _retry_delay(self, attempt: int) -> float:
-        strategy = self.retry
-        if strategy.backoff == "exponential":
-            delay = strategy.delay * (2 ** (attempt - 1))
-        else:
-            delay = strategy.delay * attempt
-        if strategy.jitter:
-            delay += random.uniform(0.0, strategy.jitter)
-        return delay
-
     @property
     def cookies(self) -> Cookies:
         return self._cookies
@@ -411,9 +349,9 @@ class Session(BaseSession[R]):
         thread: Optional[ThreadType] = None,
         use_thread_local_curl: bool = True,
         **kwargs: Unpack[BaseSessionParams[R]],
-    ) -> None:
+    ):
         """
-        Parameters set in the ``__init__`` method will be overridden by the same
+        Parameters set in the ``__init__`` method will be overriden by the same
         parameter in request method.
 
         Args:
@@ -436,16 +374,11 @@ class Session(BaseSession[R]):
             verify: whether to verify https certs.
             timeout: how many seconds to wait before giving up.
             trust_env: use http_proxy/https_proxy and other environments, default True.
-            allow_redirects: whether to allow redirection. Can be a bool, a
-                ``CurlFollow`` value, or the string ``"safe"``. Use
-                ``CurlFollow.SAFE`` or ``"safe"`` to reject redirects to
-                internal/private IP addresses (SSRF protection).
+            allow_redirects: whether to allow redirection.
             max_redirects: max redirect counts, default 30, use -1 for unlimited.
-            retry: number of retries or ``RetryStrategy`` for failed requests.
             impersonate: which browser version to impersonate in the session.
             ja3: ja3 string to impersonate in the session.
             akamai: akamai string to impersonate in the session.
-            perk: perk string to impersonate in the session.
             extra_fp: extra fingerprints options, in complement to ja3 and akamai str.
             interface: which interface use.
             default_encoding: encoding for decoding response content if charset is not
@@ -506,7 +439,7 @@ class Session(BaseSession[R]):
     def __enter__(self):
         return self
 
-    def __exit__(self, *args) -> None:
+    def __exit__(self, *args):
         self.close()
 
     def close(self) -> None:
@@ -520,7 +453,7 @@ class Session(BaseSession[R]):
         method: HttpMethod,
         url: str,
         **kwargs: Unpack[StreamRequestParams],
-    ) -> Generator[R, None, None]:
+    ):
         """Equivalent to ``with request(..., stream=True) as r:``"""
         rsp = self.request(method=method, url=url, **kwargs, stream=True)
         try:
@@ -529,13 +462,7 @@ class Session(BaseSession[R]):
             rsp.close()
 
     def ws_connect(
-        self,
-        url: str,
-        on_message=None,
-        on_error=None,
-        on_open=None,
-        on_close=None,
-        **kwargs,
+        self, url, on_message=None, on_error=None, on_open=None, on_close=None, **kwargs
     ) -> WebSocket:
         """Connects to a websocket url.
 
@@ -558,23 +485,13 @@ class Session(BaseSession[R]):
         curl = self.curl.duphandle()
         self.curl.reset()
 
-        ws: WebSocket = WebSocket(
+        ws = WebSocket(
             curl=curl,
             on_message=on_message,
             on_error=on_error,
             on_open=on_open,
             on_close=on_close,
-            debug=self.debug,
         )
-
-        # Fix session cookies being ignored
-        user_cookies = cast(Cookies | None, kwargs.get("cookies"))
-        if user_cookies is not None:
-            merged_cookies = Cookies(self.cookies)
-            merged_cookies.update(user_cookies)
-            kwargs["cookies"] = merged_cookies
-        else:
-            kwargs["cookies"] = self.cookies
 
         ws.connect(url, **kwargs)
         return ws
@@ -582,23 +499,19 @@ class Session(BaseSession[R]):
     def upkeep(self) -> int:
         return self.curl.upkeep()
 
-    def _request_once(
+    def request(
         self,
         method: HttpMethod,
         url: str,
-        params: Optional[
-            Union[dict[str, object], list[object], tuple[object, ...]]
-        ] = None,
-        data: Optional[
-            Union[dict[str, str], list[tuple[object, ...]], str, BytesIO, bytes]
-        ] = None,
+        params: Optional[Union[dict, list, tuple]] = None,
+        data: Optional[Union[dict[str, str], list[tuple], str, BytesIO, bytes]] = None,
         json: Optional[dict | list] = None,
         headers: Optional[HeaderTypes] = None,
         cookies: Optional[CookieTypes] = None,
         files: Optional[dict] = None,
         auth: Optional[tuple[str, str]] = None,
-        timeout: Optional[Union[float, tuple[float, float], object]] = NOT_SET,
-        allow_redirects: Optional[Union[bool, CurlFollow, str]] = None,
+        timeout: Optional[Union[float, tuple[float, float], object]] = not_set,
+        allow_redirects: Optional[bool] = None,
         max_redirects: Optional[int] = None,
         proxies: Optional[ProxySpec] = None,
         proxy: Optional[str] = None,
@@ -606,27 +519,30 @@ class Session(BaseSession[R]):
         verify: Optional[bool] = None,
         referer: Optional[str] = None,
         accept_encoding: Optional[str] = "gzip, deflate, br",
-        content_callback: Optional[Callable[..., object]] = None,
+        content_callback: Optional[Callable] = None,
         impersonate: Optional[BrowserTypeLiteral] = None,
         ja3: Optional[str] = None,
         akamai: Optional[str] = None,
-        perk: Optional[str] = None,
         extra_fp: Optional[Union[ExtraFingerprints, ExtraFpDict]] = None,
         default_headers: Optional[bool] = None,
         default_encoding: Union[str, Callable[[bytes], str]] = "utf-8",
         quote: Union[str, Literal[False]] = "",
-        http_version: CurlHttpVersion | HttpVersionLiteral | None = None,
+        http_version: Optional[Union[CurlHttpVersion, HttpVersionLiteral]] = None,
         interface: Optional[str] = None,
         cert: Optional[Union[str, tuple[str, str]]] = None,
         stream: Optional[bool] = None,
         max_recv_speed: int = 0,
         multipart: Optional[CurlMime] = None,
         discard_cookies: bool = False,
-    ) -> R:
+    ):
+        """Send the request, see ``requests.request`` for details on parameters."""
+
+        self._check_session_closed()
+
         # clone a new curl instance for streaming response
         if stream:
             c = self.curl.duphandle()
-            _ = self.curl.reset()
+            self.curl.reset()
         else:
             c = self.curl
 
@@ -642,7 +558,7 @@ class Session(BaseSession[R]):
             cookies_list=[self._cookies, cookies],
             files=files,
             auth=auth or self.auth,
-            timeout=self.timeout if timeout is NOT_SET else timeout,
+            timeout=self.timeout if timeout is not_set else timeout,
             allow_redirects=(
                 self.allow_redirects if allow_redirects is None else allow_redirects
             ),
@@ -659,7 +575,6 @@ class Session(BaseSession[R]):
             impersonate=impersonate or self.impersonate,
             ja3=ja3 or self.ja3,
             akamai=akamai or self.akamai,
-            perk=perk or self.perk,
             extra_fp=extra_fp or self.extra_fp,
             default_headers=(
                 self.default_headers if default_headers is None else default_headers
@@ -677,6 +592,7 @@ class Session(BaseSession[R]):
         )
 
         if stream:
+            header_parsed = threading.Event()
 
             def perform():
                 try:
@@ -692,7 +608,12 @@ class Session(BaseSession[R]):
                         cast(threading.Event, header_recved).set()
                     q.put(STREAM_END)  # type: ignore
 
+            def cleanup(fut):
+                header_parsed.wait()
+                c.reset()
+
             stream_task = self.executor.submit(perform)
+            stream_task.add_done_callback(cleanup)
 
             # Wait for the first chunk
             header_recved.wait()  # type: ignore
@@ -700,13 +621,12 @@ class Session(BaseSession[R]):
                 c, buffer, header_buffer, default_encoding, discard_cookies
             )
 
+            header_parsed.set()
+
             # Raise the exception if something wrong happens when receiving the header.
             first_element = _peek_queue(q)  # type: ignore
             if isinstance(first_element, RequestException):
-                if quit_now:
-                    quit_now.set()
-                stream_task.result()
-                c.close()
+                c.reset()
                 raise first_element
 
             rsp.request = req
@@ -748,118 +668,31 @@ class Session(BaseSession[R]):
             finally:
                 c.reset()
 
-    def request(
-        self,
-        method: HttpMethod,
-        url: str,
-        params: Optional[Union[dict, list, tuple]] = None,
-        data: Optional[Union[dict[str, str], list[tuple], str, BytesIO, bytes]] = None,
-        json: Optional[dict | list] = None,
-        headers: Optional[HeaderTypes] = None,
-        cookies: Optional[CookieTypes] = None,
-        files: Optional[dict] = None,
-        auth: Optional[tuple[str, str]] = None,
-        timeout: Optional[Union[float, tuple[float, float], object]] = NOT_SET,
-        allow_redirects: Optional[Union[bool, CurlFollow, str]] = None,
-        max_redirects: Optional[int] = None,
-        proxies: Optional[ProxySpec] = None,
-        proxy: Optional[str] = None,
-        proxy_auth: Optional[tuple[str, str]] = None,
-        verify: Optional[bool] = None,
-        referer: Optional[str] = None,
-        accept_encoding: Optional[str] = "gzip, deflate, br",
-        content_callback: Optional[Callable] = None,
-        impersonate: Optional[BrowserTypeLiteral] = None,
-        ja3: Optional[str] = None,
-        akamai: Optional[str] = None,
-        perk: Optional[str] = None,
-        extra_fp: Optional[Union[ExtraFingerprints, ExtraFpDict]] = None,
-        default_headers: Optional[bool] = None,
-        default_encoding: Union[str, Callable[[bytes], str]] = "utf-8",
-        quote: Union[str, Literal[False]] = "",
-        http_version: Optional[Union[CurlHttpVersion, HttpVersionLiteral]] = None,
-        interface: Optional[str] = None,
-        cert: Optional[Union[str, tuple[str, str]]] = None,
-        stream: Optional[bool] = None,
-        max_recv_speed: int = 0,
-        multipart: Optional[CurlMime] = None,
-        discard_cookies: bool = False,
-    ):
-        """Send the request, see ``requests.request`` for details on parameters."""
-
-        self._check_session_closed()
-
-        strategy = self.retry
-        for attempt in range(strategy.count + 1):
-            try:
-                return self._request_once(
-                    method=method,
-                    url=url,
-                    params=params,
-                    data=data,
-                    json=json,
-                    headers=headers,
-                    cookies=cookies,
-                    files=files,
-                    auth=auth,
-                    timeout=timeout,
-                    allow_redirects=allow_redirects,
-                    max_redirects=max_redirects,
-                    proxies=proxies,
-                    proxy=proxy,
-                    proxy_auth=proxy_auth,
-                    verify=verify,
-                    referer=referer,
-                    accept_encoding=accept_encoding,
-                    content_callback=content_callback,
-                    impersonate=impersonate,
-                    ja3=ja3,
-                    akamai=akamai,
-                    perk=perk,
-                    extra_fp=extra_fp,
-                    default_headers=default_headers,
-                    default_encoding=default_encoding,
-                    quote=quote,
-                    http_version=http_version,
-                    interface=interface,
-                    cert=cert,
-                    stream=stream,
-                    max_recv_speed=max_recv_speed,
-                    multipart=multipart,
-                    discard_cookies=discard_cookies,
-                )
-            except RequestException:
-                if attempt == strategy.count:
-                    raise
-                delay = self._retry_delay(attempt + 1)
-                if delay:
-                    time.sleep(delay)
-
-    def head(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
+    def head(self, url: str, **kwargs: Unpack[RequestParams]):
         return self.request(method="HEAD", url=url, **kwargs)
 
-    def get(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
+    def get(self, url: str, **kwargs: Unpack[RequestParams]):
         return self.request(method="GET", url=url, **kwargs)
 
-    def post(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
+    def post(self, url: str, **kwargs: Unpack[RequestParams]):
         return self.request(method="POST", url=url, **kwargs)
 
-    def put(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
+    def put(self, url: str, **kwargs: Unpack[RequestParams]):
         return self.request(method="PUT", url=url, **kwargs)
 
-    def patch(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
+    def patch(self, url: str, **kwargs: Unpack[RequestParams]):
         return self.request(method="PATCH", url=url, **kwargs)
 
-    def delete(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
+    def delete(self, url: str, **kwargs: Unpack[RequestParams]):
         return self.request(method="DELETE", url=url, **kwargs)
 
-    def options(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
+    def options(self, url: str, **kwargs: Unpack[RequestParams]):
         return self.request(method="OPTIONS", url=url, **kwargs)
 
-    def trace(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
+    def trace(self, url: str, **kwargs: Unpack[RequestParams]):
         return self.request(method="TRACE", url=url, **kwargs)
 
-    def query(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
+    def query(self, url: str, **kwargs: Unpack[RequestParams]):
         return self.request(method="QUERY", url=url, **kwargs)
 
 
@@ -869,13 +702,13 @@ class AsyncSession(BaseSession[R]):
     def __init__(
         self,
         *,
-        loop: asyncio.AbstractEventLoop | None = None,
-        async_curl: AsyncCurl | None = None,
+        loop=None,
+        async_curl: Optional[AsyncCurl] = None,
         max_clients: int = 10,
         **kwargs: Unpack[BaseSessionParams[R]],
-    ) -> None:
+    ):
         """
-        Parameters set in the ``__init__`` method are overridden by the same parameter
+        Parameters set in the ``__init__`` method will be override by the same parameter
         in request method.
 
         Parameters:
@@ -897,16 +730,11 @@ class AsyncSession(BaseSession[R]):
             verify: whether to verify https certs.
             timeout: how many seconds to wait before giving up.
             trust_env: use http_proxy/https_proxy and other environments, default True.
-            allow_redirects: whether to allow redirection. Can be a bool, a
-                ``CurlFollow`` value, or the string ``"safe"``. Use
-                ``CurlFollow.SAFE`` or ``"safe"`` to reject redirects to
-                internal/private IP addresses (SSRF protection).
+            allow_redirects: whether to allow redirection.
             max_redirects: max redirect counts, default 30, use -1 for unlimited.
-            retry: number of retries or ``RetryStrategy`` for failed requests.
             impersonate: which browser version to impersonate in the session.
             ja3: ja3 string to impersonate in the session.
             akamai: akamai string to impersonate in the session.
-            perk: perk string to impersonate in the session.
             extra_fp: extra fingerprints options, in complement to ja3 and akamai str.
             default_encoding: encoding for decoding response content if charset is not
                 found in headers. Defaults to "utf-8". Can be set to a callable for
@@ -932,46 +760,45 @@ class AsyncSession(BaseSession[R]):
             s = AsyncSession()  # it also works.
         """
         super().__init__(**kwargs)
-        self._loop: asyncio.AbstractEventLoop | None = loop
-        self._acurl: AsyncCurl | None = async_curl
-        self.max_clients: int = max_clients
+        self._loop = loop
+        self._acurl = async_curl
+        self.max_clients = max_clients
         self.init_pool()
 
     @property
-    def loop(self) -> asyncio.AbstractEventLoop:
-        """Returns a reference to event loop."""
+    def loop(self):
         if self._loop is None:
             self._loop = asyncio.get_running_loop()
         return self._loop
 
     @property
-    def acurl(self) -> AsyncCurl:
+    def acurl(self):
         if self._acurl is None:
             self._acurl = AsyncCurl(loop=self.loop)
         return self._acurl
 
     def init_pool(self):
-        self.pool: asyncio.LifoQueue[Curl | None] = asyncio.LifoQueue(self.max_clients)
+        self.pool = asyncio.LifoQueue(self.max_clients)
         while True:
             try:
                 self.pool.put_nowait(None)
             except asyncio.QueueFull:
                 break
 
-    async def pop_curl(self) -> Curl:
-        curl: Curl | None = await self.pool.get()
+    async def pop_curl(self):
+        curl = await self.pool.get()
         if curl is None:
             curl = Curl(debug=self.debug)
         return curl
 
-    def push_curl(self, curl: Curl | None) -> None:
+    def push_curl(self, curl):
         with suppress(asyncio.QueueFull):
             self.pool.put_nowait(curl)
 
-    async def __aenter__(self):  # TODO: -> Self
+    async def __aenter__(self):
         return self
 
-    async def __aexit__(self, *args) -> None:
+    async def __aexit__(self, *args):
         await self.close()
         return None
 
@@ -987,7 +814,7 @@ class AsyncSession(BaseSession[R]):
             except asyncio.QueueEmpty:
                 break
 
-    def release_curl(self, curl: Curl) -> None:
+    def release_curl(self, curl):
         curl.clean_handles_and_buffers()
         if not self._closed:
             self.acurl.remove_handle(curl)
@@ -1002,7 +829,7 @@ class AsyncSession(BaseSession[R]):
         method: HttpMethod,
         url: str,
         **kwargs: Unpack[StreamRequestParams],
-    ) -> AsyncGenerator[R, None, None]:
+    ):
         """Equivalent to ``async with request(..., stream=True) as r:``"""
         rsp = await self.request(method=method, url=url, **kwargs, stream=True)
         try:
@@ -1010,46 +837,42 @@ class AsyncSession(BaseSession[R]):
         finally:
             await rsp.aclose()
 
-    def ws_connect(
+    async def ws_connect(
         self,
         url: str,
         autoclose: bool = True,
-        params: dict[str, object] | list[object] | tuple[object, ...] | None = None,
-        headers: HeaderTypes | None = None,
-        cookies: CookieTypes | None = None,
-        auth: tuple[str, str] | None = None,
-        timeout: float | tuple[float, float] | NotSetType | None = NOT_SET,
-        allow_redirects: bool | CurlFollow | str | None = None,
-        max_redirects: int | None = None,
-        proxies: ProxySpec | None = None,
-        proxy: str | None = None,
-        proxy_auth: tuple[str, str] | None = None,
-        verify: bool | None = None,
-        referer: str | None = None,
-        accept_encoding: str | None = "gzip, deflate, br",
-        impersonate: BrowserTypeLiteral | None = None,
-        ja3: str | None = None,
-        akamai: str | None = None,
-        perk: str | None = None,
-        extra_fp: ExtraFingerprints | ExtraFpDict | None = None,
-        default_headers: bool | None = None,
-        quote: str | Literal[False] = "",
-        http_version: CurlHttpVersion | HttpVersionLiteral | None = None,
-        interface: str | None = None,
-        cert: str | tuple[str, str] | None = None,
+        params: Optional[Union[dict, list, tuple]] = None,
+        headers: Optional[HeaderTypes] = None,
+        cookies: Optional[CookieTypes] = None,
+        auth: Optional[tuple[str, str]] = None,
+        timeout: Optional[Union[float, tuple[float, float], object]] = not_set,
+        allow_redirects: Optional[bool] = None,
+        max_redirects: Optional[int] = None,
+        proxies: Optional[ProxySpec] = None,
+        proxy: Optional[str] = None,
+        proxy_auth: Optional[tuple[str, str]] = None,
+        verify: Optional[bool] = None,
+        referer: Optional[str] = None,
+        accept_encoding: Optional[str] = "gzip, deflate, br",
+        impersonate: Optional[BrowserTypeLiteral] = None,
+        ja3: Optional[str] = None,
+        akamai: Optional[str] = None,
+        extra_fp: Optional[Union[ExtraFingerprints, ExtraFpDict]] = None,
+        default_headers: Optional[bool] = None,
+        quote: Union[str, Literal[False]] = "",
+        http_version: Optional[Union[CurlHttpVersion, HttpVersionLiteral]] = None,
+        interface: Optional[str] = None,
+        cert: Optional[Union[str, tuple[str, str]]] = None,
         max_recv_speed: int = 0,
-        recv_queue_size: int = 32,
-        send_queue_size: int = 16,
-        max_send_batch_size: int = 32,
+        recv_queue_size: int = 512,
+        send_queue_size: int = 256,
+        max_send_batch_size: int = 256,
         coalesce_frames: bool = False,
-        ws_retry: WebSocketRetryStrategy | None = None,
-        recv_time_slice: float = 0.005,
-        send_time_slice: float = 0.001,
-        max_message_size: int = 4 * 1024 * 1024,
-        drain_on_error: bool = False,
-        block_on_recv_queue_full: bool = True,
-        curl_options: dict[CurlOpt, str] | None = None,
-    ) -> AsyncWebSocketContext:
+        retry_on_recv_error: bool = False,
+        yield_interval: float = 0.001,
+        fair_scheduling: bool = False,
+        yield_mask: int = 63,
+    ) -> AsyncWebSocket:
         """Connects to a WebSocket.
 
         Args:
@@ -1061,10 +884,7 @@ class AsyncSession(BaseSession[R]):
             auth: HTTP basic auth, a tuple of (username, password), only basic auth is
                 supported.
             timeout: how many seconds to wait before giving up.
-            allow_redirects: whether to allow redirection. Can be a bool, a
-                ``CurlFollow`` value, or the string ``"safe"``. Use
-                ``CurlFollow.SAFE`` or ``"safe"`` to reject redirects to
-                internal/private IP addresses (SSRF protection).
+            allow_redirects: whether to allow redirection.
             max_redirects: max redirect counts, default 30, use -1 for unlimited.
             proxies: dict of proxies to use, prefer to use ``proxy`` if they are the
                 same. format: ``{"http": proxy_url, "https": proxy_url}``.
@@ -1077,133 +897,117 @@ class AsyncSession(BaseSession[R]):
             impersonate: which browser version to impersonate.
             ja3: ja3 string to impersonate.
             akamai: akamai string to impersonate.
-            perk: perk string to impersonate.
             extra_fp: extra fingerprints options, in complement to ja3 and akamai str.
             default_headers: whether to set default browser headers.
             quote: Set characters to be quoted, i.e. percent-encoded. Default safe
-                string is ``!#$%&'()*+,/:;=?@[]~``. If set to a string, the character
+                string is ``!#$%&'()*+,/:;=?@[]~``. If set to a sting, the character
                 will be removed from the safe string, thus quoted. If set to False, the
                 url will be kept as is, without any automatic percent-encoding, you must
                 encode the URL yourself.
+            curl_options: extra curl options to use.
             http_version: limiting http version, defaults to http2.
             interface: which interface to use.
             cert: a tuple of (cert, key) filenames for client cert.
             max_recv_speed: maximum receive speed, bytes per second.
             recv_queue_size: The maximum number of incoming WebSocket
-                messages to buffer internally. This queue stores messages received by
-                the Curl socket that are waiting to be consumed on calling ``recv()``.
+                messages to buffer internally. This queue stores messages received
+                by the Curl socket that are waiting to be consumed by calling `recv()`.
             send_queue_size: The maximum number of outgoing WebSocket
                 messages to buffer before applying network backpressure. When you call
-                ``send()`` the message is placed in this queue and transmitted when
+                `send(...)` the message is placed in this queue and transmitted when
                 the Curl socket is next available for sending.
             max_send_batch_size: The max batch size for sent frames.
-            coalesce_frames: When set, multiple pending messages in the send queue
+            coalesce_frames: If `True`, multiple pending messages in the send queue
                 may be merged into a single WebSocket frame for improved throughput.
-                **Warning:** This breaks the one-to-one mapping of ``send()`` calls
-                to frames and should only be used when the application protocol is
-                designed to handle concatenated data streams. Defaults to ``False``.
-            ws_retry (WebSocketRetryStrategy): Retry policy for WebSocket messages.
-            recv_time_slice: The maximum duration (in seconds) to process incoming
-                messages before yielding to the event loop.
-                Defaults to ``0.005`` (5ms).
-            send_time_slice: The maximum duration (in seconds) to process outgoing
-                messages before yielding to the event loop.
-                Defaults to ``0.001`` (1ms).
-            max_message_size: Maximum allowed size for a complete received
-                WebSocket message (default: ``4 MiB``).
-            drain_on_error: If ``True``, when a connection error occurs,
-            attempt to consume all the buffered received messages first,
-            before raising the error. Otherwise, raise it immediately (default).
-            block_on_recv_queue_full (bool, optional): If ``False``, the connection
-                is failed immediately when the receive queue is full. The message that
-                caused the overflow is not delivered; any messages already buffered may
-                still be drained if ``drain_on_error=True``.
-            curl_options: extra curl options to use.
+                **Warning:** This breaks the one-to-one mapping of `send()` calls to
+                frames and should only be used when the application protocol is
+                designed to handle concatenated data streams. Defaults to `False`.
+            retry_on_recv_error: Retries `ws_recv()` if a recv error is raised.
+                Retries up to a limited number of times with a delay in between.
+            yield_interval: How often to yield control back to the event loop.
+                This is a trade-off between throughput and responsiveness. Lower values
+                means the loop yields more frequently and enables other tasks to run,
+                while higher values are better for throughput. The balanced default
+                is `1ms` but you can customize this to fit your application/use case.
+            fair_scheduling: Changes the I/O priority from favoring receives (`5:1`)
+                to a balanced ratio (`1:1`). Enable this to improve send responsiveness
+                under heavy, concurrent load, at the cost of significantly lower overall
+                throughput.
+            yield_mask: Controls the frequency of cooperative multitasking
+                yields in the read loop. The loop yields every `yield_mask + 1`
+                operations. For efficiency, this value must be a power of two minus one
+                (e.g., `63`, `127`, `255`). Lower values yield more often, improving
+                fairness at the cost of throughput. Higher values yield less often,
+                prioritizing throughput.
         """
 
-        async def _connect_coro() -> AsyncWebSocket:
-            self._check_session_closed()
+        self._check_session_closed()
 
-            curl: Curl = await self.pop_curl()
-            _ = set_curl_options(
-                curl=curl,
-                method="GET",
-                url=url,
-                base_url=self.base_url,
-                params_list=[self.params, params],
-                headers_list=[self.headers, headers],
-                cookies_list=[self.cookies, cookies],
-                auth=auth or self.auth,
-                timeout=self.timeout if timeout is NOT_SET else timeout,
-                allow_redirects=(
-                    self.allow_redirects if allow_redirects is None else allow_redirects
-                ),
-                max_redirects=(
-                    self.max_redirects if max_redirects is None else max_redirects
-                ),
-                proxies_list=[self.proxies, proxies],
-                proxy=proxy,
-                proxy_auth=proxy_auth or self.proxy_auth,
-                verify_list=[self.verify, verify],
-                referer=referer,
-                accept_encoding=accept_encoding,
-                impersonate=impersonate or self.impersonate,
-                ja3=ja3 or self.ja3,
-                akamai=akamai or self.akamai,
-                extra_fp=extra_fp or self.extra_fp,
-                default_headers=(
-                    self.default_headers if default_headers is None else default_headers
-                ),
-                quote=quote,
-                http_version=http_version or self.http_version,
-                interface=interface or self.interface,
-                max_recv_speed=max_recv_speed,
-                cert=cert or self.cert,
-                queue_class=asyncio.Queue,
-                event_class=asyncio.Event,
-                curl_options=curl_options,
-            )
-            _ = curl.setopt(CurlOpt.TCP_NODELAY, 1)
-            _ = curl.setopt(
-                CurlOpt.CONNECT_ONLY,
-                2,  # https://curl.se/docs/websocket.html
-            )
+        curl = await self.pop_curl()
+        set_curl_options(
+            curl=curl,
+            method="GET",
+            url=url,
+            base_url=self.base_url,
+            params_list=[self.params, params],
+            headers_list=[self.headers, headers],
+            cookies_list=[self.cookies, cookies],
+            auth=auth or self.auth,
+            timeout=self.timeout if timeout is not_set else timeout,
+            allow_redirects=(
+                self.allow_redirects if allow_redirects is None else allow_redirects
+            ),
+            max_redirects=(
+                self.max_redirects if max_redirects is None else max_redirects
+            ),
+            proxies_list=[self.proxies, proxies],
+            proxy=proxy,
+            proxy_auth=proxy_auth or self.proxy_auth,
+            verify_list=[self.verify, verify],
+            referer=referer,
+            accept_encoding=accept_encoding,
+            impersonate=impersonate or self.impersonate,
+            ja3=ja3 or self.ja3,
+            akamai=akamai or self.akamai,
+            extra_fp=extra_fp or self.extra_fp,
+            default_headers=(
+                self.default_headers if default_headers is None else default_headers
+            ),
+            quote=quote,
+            http_version=http_version or self.http_version,
+            interface=interface or self.interface,
+            max_recv_speed=max_recv_speed,
+            cert=cert or self.cert,
+            queue_class=asyncio.Queue,
+            event_class=asyncio.Event,
+        )
+        curl.setopt(CurlOpt.TCP_NODELAY, 1)
+        curl.setopt(CurlOpt.CONNECT_ONLY, 2)  # https://curl.se/docs/websocket.html
 
-            try:
-                _ = await self.loop.run_in_executor(None, curl.perform)
-            except Exception:
-                curl.close()
-                self.push_curl(None)
-                raise
+        await self.loop.run_in_executor(None, curl.perform)
+        ws: AsyncWebSocket = AsyncWebSocket(
+            cast(AsyncSession[Response], self),
+            curl,
+            autoclose=autoclose,
+            recv_queue_size=recv_queue_size,
+            send_queue_size=send_queue_size,
+            max_send_batch_size=max_send_batch_size,
+            coalesce_frames=coalesce_frames,
+            retry_on_recv_error=retry_on_recv_error,
+            yield_interval=yield_interval,
+            fair_scheduling=fair_scheduling,
+            yield_mask=yield_mask,
+        )
 
-            ws: AsyncWebSocket = AsyncWebSocket(
-                cast(AsyncSession[Response], self),
-                curl,
-                autoclose=autoclose,
-                recv_queue_size=recv_queue_size,
-                send_queue_size=send_queue_size,
-                max_send_batch_size=max_send_batch_size,
-                coalesce_frames=coalesce_frames,
-                ws_retry=ws_retry,
-                recv_time_slice=recv_time_slice,
-                send_time_slice=send_time_slice,
-                max_message_size=max_message_size,
-                drain_on_error=drain_on_error,
-                block_on_recv_queue_full=block_on_recv_queue_full,
-                debug=self.debug,
-            )
+        try:
+            ws._start_io_tasks()
+        except WebSocketError:
+            ws.terminate()
+            raise
 
-            try:
-                ws._start_io_tasks()
-            except WebSocketError:
-                ws.terminate()
-                raise
+        return ws
 
-            return ws
-
-        return AsyncWebSocketContext(_connect_coro())
-
-    async def _request_once(
+    async def request(
         self,
         method: HttpMethod,
         url: str,
@@ -1214,8 +1018,8 @@ class AsyncSession(BaseSession[R]):
         cookies: Optional[CookieTypes] = None,
         files: Optional[dict] = None,
         auth: Optional[tuple[str, str]] = None,
-        timeout: Optional[Union[float, tuple[float, float], object]] = NOT_SET,
-        allow_redirects: Optional[Union[bool, CurlFollow, str]] = None,
+        timeout: Optional[Union[float, tuple[float, float], object]] = not_set,
+        allow_redirects: Optional[bool] = None,
         max_redirects: Optional[int] = None,
         proxies: Optional[ProxySpec] = None,
         proxy: Optional[str] = None,
@@ -1227,7 +1031,6 @@ class AsyncSession(BaseSession[R]):
         impersonate: Optional[BrowserTypeLiteral] = None,
         ja3: Optional[str] = None,
         akamai: Optional[str] = None,
-        perk: Optional[str] = None,
         extra_fp: Optional[Union[ExtraFingerprints, ExtraFpDict]] = None,
         default_headers: Optional[bool] = None,
         default_encoding: Union[str, Callable[[bytes], str]] = "utf-8",
@@ -1240,6 +1043,10 @@ class AsyncSession(BaseSession[R]):
         multipart: Optional[CurlMime] = None,
         discard_cookies: bool = False,
     ) -> R:
+        """Send the request, see ``curl_cffi.requests.request`` for details on args."""
+
+        self._check_session_closed()
+
         curl = await self.pop_curl()
         req, buffer, header_buffer, q, header_recved, quit_now = set_curl_options(
             curl=curl,
@@ -1253,7 +1060,7 @@ class AsyncSession(BaseSession[R]):
             cookies_list=[self.cookies, cookies],
             files=files,
             auth=auth or self.auth,
-            timeout=self.timeout if timeout is NOT_SET else timeout,
+            timeout=self.timeout if timeout is not_set else timeout,
             allow_redirects=(
                 self.allow_redirects if allow_redirects is None else allow_redirects
             ),
@@ -1270,7 +1077,6 @@ class AsyncSession(BaseSession[R]):
             impersonate=impersonate or self.impersonate,
             ja3=ja3 or self.ja3,
             akamai=akamai or self.akamai,
-            perk=perk or self.perk,
             extra_fp=extra_fp or self.extra_fp,
             default_headers=(
                 self.default_headers if default_headers is None else default_headers
@@ -1289,7 +1095,7 @@ class AsyncSession(BaseSession[R]):
         if stream:
             task = self.acurl.add_handle(curl)
 
-            async def perform() -> None:
+            async def perform():
                 try:
                     await task
                 except CurlError as e:
@@ -1352,93 +1158,6 @@ class AsyncSession(BaseSession[R]):
                 return rsp
             finally:
                 self.release_curl(curl)
-
-    async def request(
-        self,
-        method: HttpMethod,
-        url: str,
-        params: Optional[Union[dict, list, tuple]] = None,
-        data: Optional[Union[dict[str, str], list[tuple], str, BytesIO, bytes]] = None,
-        json: Optional[dict | list] = None,
-        headers: Optional[HeaderTypes] = None,
-        cookies: Optional[CookieTypes] = None,
-        files: Optional[dict] = None,
-        auth: Optional[tuple[str, str]] = None,
-        timeout: Optional[Union[float, tuple[float, float], object]] = NOT_SET,
-        allow_redirects: Optional[Union[bool, CurlFollow, str]] = None,
-        max_redirects: Optional[int] = None,
-        proxies: Optional[ProxySpec] = None,
-        proxy: Optional[str] = None,
-        proxy_auth: Optional[tuple[str, str]] = None,
-        verify: Optional[bool] = None,
-        referer: Optional[str] = None,
-        accept_encoding: Optional[str] = "gzip, deflate, br",
-        content_callback: Optional[Callable] = None,
-        impersonate: Optional[BrowserTypeLiteral] = None,
-        ja3: Optional[str] = None,
-        akamai: Optional[str] = None,
-        perk: Optional[str] = None,
-        extra_fp: Optional[Union[ExtraFingerprints, ExtraFpDict]] = None,
-        default_headers: Optional[bool] = None,
-        default_encoding: Union[str, Callable[[bytes], str]] = "utf-8",
-        quote: Union[str, Literal[False]] = "",
-        http_version: Optional[Union[CurlHttpVersion, HttpVersionLiteral]] = None,
-        interface: Optional[str] = None,
-        cert: Optional[Union[str, tuple[str, str]]] = None,
-        stream: Optional[bool] = None,
-        max_recv_speed: int = 0,
-        multipart: Optional[CurlMime] = None,
-        discard_cookies: bool = False,
-    ) -> R:
-        """Send the request, see ``curl_cffi.requests.request`` for details on args."""
-
-        self._check_session_closed()
-
-        strategy = self.retry
-        for attempt in range(strategy.count + 1):
-            try:
-                return await self._request_once(
-                    method=method,
-                    url=url,
-                    params=params,
-                    data=data,
-                    json=json,
-                    headers=headers,
-                    cookies=cookies,
-                    files=files,
-                    auth=auth,
-                    timeout=timeout,
-                    allow_redirects=allow_redirects,
-                    max_redirects=max_redirects,
-                    proxies=proxies,
-                    proxy=proxy,
-                    proxy_auth=proxy_auth,
-                    verify=verify,
-                    referer=referer,
-                    accept_encoding=accept_encoding,
-                    content_callback=content_callback,
-                    impersonate=impersonate,
-                    ja3=ja3,
-                    akamai=akamai,
-                    perk=perk,
-                    extra_fp=extra_fp,
-                    default_headers=default_headers,
-                    default_encoding=default_encoding,
-                    quote=quote,
-                    http_version=http_version,
-                    interface=interface,
-                    cert=cert,
-                    stream=stream,
-                    max_recv_speed=max_recv_speed,
-                    multipart=multipart,
-                    discard_cookies=discard_cookies,
-                )
-            except RequestException:
-                if attempt == strategy.count:
-                    raise
-                delay = self._retry_delay(attempt + 1)
-                if delay:
-                    await asyncio.sleep(delay)
 
     async def head(self, url: str, **kwargs: Unpack[RequestParams]) -> R:
         return await self.request(method="HEAD", url=url, **kwargs)
