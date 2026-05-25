@@ -1027,18 +1027,19 @@ class PictaSearchIE(PictaIE, SearchInfoExtractor):
     _MAX_RESULTS = 100
     PAGE_SIZE = 20
 
-    def _entries(self, video):
-        video_id = video.get('id')
-        video_url = (
-            ROOT_BASE_URL
-            + 'medias/'
-            + video.get('slug_url')
-            + '/?playlist=pictasearch')
-        video_title = video.get('nombre')
-        duration = parse_duration(video.get('duracion'))
-        entries = self.url_result(video_url, PictaIE.ie_key(), video_id, video_title)
-        entries.update({'duration': duration})
-        return entries
+    def _entries(self, results):
+        for video in results:
+            video_id = video.get('id')
+            video_url = (
+                ROOT_BASE_URL
+                + 'medias/'
+                + video.get('slug_url')
+                + '/?playlist=pictasearch')
+            video_title = video.get('nombre')
+            duration = parse_duration(video.get('duracion'))
+            entries = self.url_result(video_url, PictaIE.ie_key(), video_id, video_title)
+            entries.update({'duration': duration})
+            yield entries
 
     def _search_series_results(self, query):
         serie_search = self._download_json(
@@ -1081,11 +1082,12 @@ class PictaSearchIE(PictaIE, SearchInfoExtractor):
                 if not serie or not isinstance(serie, list):
                     self.write_debug(
                         f'Could not find results for season: {season}')
+                    if s == 0:
+                        raise ExtractorError(
+                            f'Could not find results for query "{query}"', expected=True)
                     break
                 else:
-                    for video in serie:
-                        entries = self._entries(video)
-                        yield entries
+                    yield from self._entries(serie)
                 next_page = traverse_obj(serie_response, ('next'), {int_or_none})
                 if next_page is None:
                     break
@@ -1107,9 +1109,7 @@ class PictaSearchIE(PictaIE, SearchInfoExtractor):
 
             results = traverse_obj(search_response, ('results'), {list})
             if results and isinstance(results, list):
-                for video in results:
-                    entries = self._entries(video)
-                    yield entries
+                yield from self._entries(results)
             next_page = traverse_obj(search_response, ('next'), {int_or_none})
             if next_page is None or i >= math.ceil(self._MAX_RESULTS / self.PAGE_SIZE):
                 break
