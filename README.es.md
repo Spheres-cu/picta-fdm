@@ -106,7 +106,7 @@ Desde la versión 1.1.4, puedes descargar listas de reproducción personales y r
 "https://www.picta.cu/search/*Superman*"
 ```
 
-#### Search for series
+#### Buscar series
 
 1. Cree una URL con este formato: `https://www.picta.cu/serie/<consulta>` donde consulta es el parámetro de búsqueda de la serie.
 2. Pegue la URL creada en FDM.
