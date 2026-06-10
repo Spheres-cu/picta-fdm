@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
 
 # Execute with
 # $ python3 picta_dl/__main__.py (3.9+)
@@ -17,7 +16,7 @@ else:
     env = dict(os.environ)
     lp_key = 'LD_LIBRARY_PATH'  # for GNU/Linux and *BSD.
     lp_orig = env.get(lp_key + '_ORIG')
-    
+
     if lp_orig is not None:
         env[lp_key] = lp_orig
         os.environ[lp_key] = env[lp_key]
