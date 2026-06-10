@@ -45,7 +45,7 @@ var msParser = (function() {
                     resolve(myObj);
                 } catch (e) {
                     reject({
-                        error: e.message,
+                        error: e.error,
                         isParseError: true
                     });
                 }

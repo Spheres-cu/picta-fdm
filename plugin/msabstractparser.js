@@ -47,7 +47,7 @@ var msAbstractParser = (function() {
                     let output = obj.output.trim();
                     let isPlaylist = /\"_type\"\:\s*\"playlist\"/.test(output);
 
-                    if (obj.errorOutput || output[0] !== '{') {
+                    if (obj.exitCode !== 0) {
                         try {
                             var PluginError = /^ERROR:\s*(\[(?:picta(?::channel:playlist|:user:playlist)?|youtube|facebook)\])?/i.test(obj.errorOutput);
                             console.log("Plugin Error:", PluginError);
@@ -59,7 +59,7 @@ var msAbstractParser = (function() {
                                 });
                             }
                         } catch (e) {
-                            let ErrorMessage = "Parse error: " + e.message;
+                            let ErrorMessage = "Parse error: " + e.error;
                             reject({
                                 error: ErrorMessage,
                                 isParseError: !PluginError

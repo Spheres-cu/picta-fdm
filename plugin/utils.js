@@ -107,6 +107,7 @@ function parseErrorMessage(log, options = {}) {
   message = message.trim();
   message = message.replace(/\s*\(caused by.*$/, '');
   message =message.replace(/\s*Failed to download MPD manifest:\s*/, '');
+  message =message.replace(/\s*Unable to download JSON metadata:\s*/, '');
   message = message.replace(/:\s*$/, '');
 
   return message;
