@@ -3,7 +3,7 @@
   "author": "https://github.com/Spheres-cu",
   "name": "Picta",
   "description": "Proporciona soporte para la descarga de videos desde los sitios www.picta.cu, Youtube y Facebook.",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "icon": "logo.png",
   "mediaParser": true,
   "mediaListParser": true,
