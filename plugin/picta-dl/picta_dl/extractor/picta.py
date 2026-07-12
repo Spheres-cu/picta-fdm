@@ -3,17 +3,13 @@ import math
 import re
 import time
 import urllib.parse
-from typing import Any
 
 from ..networking.exceptions import HTTPError
 from ..utils import (
     ExtractorError,
     base_url,
     determine_ext,
-    float_or_none,
     int_or_none,
-    mimetype2ext,
-    parse_codecs,
     parse_duration,
     str_or_none,
     strftime_or_none,
@@ -26,13 +22,12 @@ from ..utils import (
 )
 from .common import InfoExtractor, SearchInfoExtractor
 
-ROOT_BASE_URL = 'https://www.picta.cu/'
-API_BASE_URL = 'https://api.picta.cu/v2/'
-
 
 # noinspection PyAbstractClass
 class PictaBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'picta'
+    ROOT_BASE_URL = 'https://www.picta.cu/'
+    API_BASE_URL = 'https://api.picta.cu/v2/'
 
     @staticmethod
     def _extract_video(video, video_id=None, require_title=True):
@@ -77,7 +72,7 @@ class PictaBaseIE(InfoExtractor):
                 'uploader_id': ('canal', 'usuario_id', {int_or_none}),
             }),  # type: ignore
             'channel': channel,
-            'channel_url': urljoin(ROOT_BASE_URL + 'canal/', channel),
+            'channel_url': urljoin(PictaBaseIE.ROOT_BASE_URL + 'canal/', urllib.parse.quote(f'{channel}')),
             'timestamp': timestamp,
             'modified_timestamp': unified_timestamp(modified_timestamp),
             'release_year': release if release else int_or_none(strftime_or_none(timestamp, '%Y')),
@@ -101,7 +96,6 @@ class PictaBaseIE(InfoExtractor):
 
 # noinspection PyAbstractClass
 class PictaIE(PictaBaseIE):
-
     IE_NAME = 'picta'
     IE_DESC = 'Picta videos'
     API_CLIENT_ID = 'ebkU3YeFu3So9hesQHrS8AZjEa4v7TiYbS5QZIgO'
@@ -109,7 +103,7 @@ class PictaIE(PictaBaseIE):
     _HEADERS = {}
 
     _VALID_URL = (
-        r'https?://(?:www\.)?picta\.cu/(?:medias|movie|documental|musical)/(?P<id>[\da-z-]+)'
+        r'https?://(?:www\.)?picta\.cu/(?:medias|movie|documental|musical|short)/(?P<id>[\da-z-]+)'
         r'(?:\?playlist=(?P<playlist_id>[\da-z-]+))?'
     )
 
@@ -142,6 +136,9 @@ class PictaIE(PictaBaseIE):
     }, {
         'url': 'https://www.picta.cu/musical/ronkalunga-refranero-gtiu6juzuo3e4tex',
         'only_matching': True,
+    }, {
+        'url': 'https://www.picta.cu/short/spider-man-2026-nuevo-dia-trailer-azdvtcyshnje44kx',
+        'only_matching': True,
     }]
 
     _LANGUAGES_CODES = ['es']
@@ -169,7 +166,7 @@ class PictaIE(PictaBaseIE):
     def _valid_token(self, username, token_cache) -> bool:
         try:
             token_response = self._download_json(
-                API_BASE_URL + 'usuario/me/?format=json', video_id=None,
+                self.API_BASE_URL + 'usuario/me/?format=json', video_id=None,
                 note='Checking cached token',
                 errnote=False, fatal=False,
                 headers={'Authorization': f'Bearer {token_cache}'},
@@ -255,429 +252,6 @@ class PictaIE(PictaBaseIE):
             return {}
         return sub_lang_list
 
-    def _extract_mpd_formats(
-            self, mpd_url, video_id, mpd_id=None, note=None, errnote=None,
-            fatal=True, formats_dict={}, data=None, headers={}, query={}):
-
-        if self.get_param('ignore_no_formats_error'):
-            fatal = False
-
-        res = self._download_xml_handle(
-            mpd_url, video_id,
-            note=note or 'Downloading MPD manifest',
-            errnote=errnote or 'Failed to download MPD manifest',
-            fatal=fatal, data=data, headers=headers, query=query)
-        if res is False:
-            return []
-        mpd_doc, urlh = res
-        if mpd_doc is None:
-            return []
-        mpd_base_url = base_url(urlh.url)
-
-        return self._parse_mpd_formats(
-            mpd_doc, mpd_id=mpd_id,
-            mpd_base_url=mpd_base_url,
-            formats_dict=formats_dict,
-            mpd_url=mpd_url)
-
-    def _parse_mpd_formats(
-            self, mpd_doc, mpd_id=None, mpd_base_url='',
-            formats_dict={}, mpd_url=None):
-        """
-        # noqa
-        Parse formats from MPD manifest.
-        References:
-        1. MPEG-DASH Standard, ISO/IEC 23009-1:2014(E),
-        http://standards.iso.org/ittf/PubliclyAvailableStandards/c065274_ISO_IEC_23009-1_2014.zip
-        2. https://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP
-        - Note: Fix MPD manifest for Picta
-        3. https://developer.mozilla.org/en-US/docs/Web/Guide/Audio_and_video_delivery/Setting_up_adaptive_streaming_media_sources
-        """
-        if mpd_doc.get('type') == 'dynamic':
-            return []
-
-        namespace = self._search_regex(
-            r'(?i)^{([^}]+)?}MPD$', mpd_doc.tag, 'namespace', default=None,
-        )
-
-        def _add_ns(path):
-            return self._xpath_ns(path, namespace)
-
-        def is_drm_protected(element):
-            return element.find(_add_ns('ContentProtection')) is not None
-
-        def extract_multisegment_info(element, ms_parent_info):
-            ms_info = ms_parent_info.copy()
-
-            # As per [1, 5.3.9.2.2] SegmentList and SegmentTemplate share some
-            # common attributes and elements.  We will only extract relevant
-            # for us.
-            def extract_common(source):
-                segment_timeline = source.find(_add_ns('SegmentTimeline'))
-                if segment_timeline is not None:
-                    s_e = segment_timeline.findall(_add_ns('S'))
-                    if s_e:
-                        ms_info['total_number'] = 0
-                        ms_info['s'] = []
-                        for s in s_e:
-                            r = int(s.get('r', 0))
-                            ms_info['total_number'] += 1 + r
-                            ms_info['s'].append(
-                                {
-                                    't': int(s.get('t', 0)),
-                                    # @d is mandatory (see [1, 5.3.9.6.2, Table 17, page 60])
-                                    'd': int(s.attrib['d']),
-                                    'r': r,
-                                },
-                            )
-                start_number = source.get('startNumber')
-                if start_number:
-                    ms_info['start_number'] = int(start_number)
-                timescale = source.get('timescale')
-                if timescale:
-                    ms_info['timescale'] = int(timescale)
-                segment_duration = source.get('duration')
-                if segment_duration:
-                    ms_info['segment_duration'] = float(segment_duration)
-
-            def extract_Initialization(source):
-                initialization = source.find(_add_ns('Initialization'))
-                # TODO: Different Initialization sourceURL. See docs/manifests/*.mpd
-                if initialization is not None:
-                    ms_info['initialization_url'] = initialization.attrib['range']
-
-            segment_list = element.find(_add_ns('SegmentList'))
-            if segment_list is not None:
-                extract_common(segment_list)
-                extract_Initialization(segment_list)
-                segment_urls_e = segment_list.findall(_add_ns('SegmentURL'))
-                if segment_urls_e:
-                    # TODO: Different SegmentURL media / mediaRange
-                    # Picta dont use fragments
-                    segment_urls = [
-                        segment.attrib.get('media')
-                        for segment in segment_urls_e
-                        if segment.attrib.get('media') is not None
-                    ]
-                    if segment_urls:
-                        ms_info['segment_urls'] = segment_urls
-            else:
-                segment_template = element.find(_add_ns('SegmentTemplate'))
-                if segment_template is not None:
-                    extract_common(segment_template)
-                    media = segment_template.get('media')
-                    if media:
-                        ms_info['media'] = media
-                    initialization = segment_template.get('initialization')
-                    if initialization:
-                        ms_info['initialization'] = initialization
-                    else:
-                        extract_Initialization(segment_template)
-            return ms_info
-
-        mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
-        formats = []
-        for period in mpd_doc.findall(_add_ns('Period')):
-            period_duration = parse_duration(period.get('duration')) or mpd_duration
-            period_ms_info = extract_multisegment_info(
-                period,
-                {
-                    'start_number': 1,
-                    'timescale': 1,
-                },
-            )
-            for adaptation_set in period.findall(_add_ns('AdaptationSet')):
-                if is_drm_protected(adaptation_set):
-                    continue
-                adaption_set_ms_info = extract_multisegment_info(
-                    adaptation_set, period_ms_info,
-                )
-                for representation in adaptation_set.findall(_add_ns('Representation')):
-                    if is_drm_protected(representation):
-                        continue
-                    representation_attrib = adaptation_set.attrib.copy()
-                    representation_attrib.update(representation.attrib)
-                    # According to [1, 5.3.7.2, Table 9, page 41], @mimeType is mandatory
-                    mime_type = representation_attrib['mimeType']
-                    content_type = mime_type.split('/')[0]
-                    if content_type == 'text' or content_type == 'application':
-                        # TODO: implement WebVTT downloading
-                        pass
-                    elif content_type in ('video', 'audio'):
-                        base_url = ''
-                        for element in (
-                            representation,
-                            adaptation_set,
-                            period,
-                            mpd_doc,
-                        ):
-                            base_url_e = element.find(_add_ns('BaseURL'))
-                            if base_url_e is not None:
-                                base_url = base_url_e.text + base_url
-                                if re.match(r'^https?://', base_url):
-                                    break
-                        if mpd_base_url and not re.match(r'^https?://', base_url):
-                            if not mpd_base_url.endswith(
-                                '/',
-                            ) and not base_url.startswith('/'):
-                                mpd_base_url += '/'
-                            base_url = mpd_base_url + base_url
-                        representation_id = representation_attrib.get('id')
-                        lang = representation_attrib.get('lang')
-                        url_el = representation.find(_add_ns('BaseURL'))
-                        filesize = int_or_none(
-                            url_el.attrib.get(
-                                '{http://youtube.com/yt/2012/10/10}contentLength',
-                            )
-                            if url_el is not None
-                            else None,
-                        )
-                        bandwidth = int_or_none(representation_attrib.get('bandwidth'))
-                        f: dict[str, Any] = {
-                            'format_id': '%s-%s' % (mpd_id, representation_id)
-                            if mpd_id
-                            else representation_id,
-                            'manifest_url': mpd_url,
-                            'ext': mimetype2ext(mime_type),
-                            'width': int_or_none(representation_attrib.get('width')),
-                            'height': int_or_none(representation_attrib.get('height')),
-                            'tbr': float_or_none(bandwidth, 1000),
-                            'asr': int_or_none(
-                                representation_attrib.get('audioSamplingRate'),
-                            ),
-                            'fps': int_or_none(representation_attrib.get('frameRate')),
-                            'language': lang
-                            if lang not in ('mul', 'und', 'zxx', 'mis')
-                            else None,
-                            'format_note': 'DASH %s' % content_type,
-                            'filesize': filesize,
-                            'container': f'{mimetype2ext(mime_type)}' + '_dash',
-                        }
-                        f.update(parse_codecs(representation_attrib.get('codecs')))
-                        representation_ms_info = extract_multisegment_info(
-                            representation, adaption_set_ms_info,
-                        )
-
-                        def prepare_template(template_name, identifiers):
-                            tmpl = representation_ms_info[template_name]
-                            # First of, % characters outside $...$ templates
-                            # must be escaped by doubling for proper processing
-                            # by % operator string formatting used further (see
-                            # https://github.com/ytdl-org/youtube-dl/issues/16867).
-                            t = ''
-                            in_template = False
-                            for c in tmpl:
-                                t += c
-                                if c == '$':
-                                    in_template = not in_template
-                                elif c == '%' and not in_template:
-                                    t += c
-                            # Next, $...$ templates are translated to their
-                            # %(...) counterparts to be used with % operator
-                            t = t.replace('$RepresentationID$', representation_id)
-                            t = re.sub(
-                                r'\$(%s)\$' % '|'.join(identifiers), r'%(\1)d', t,
-                            )
-                            t = re.sub(
-                                r'\$(%s)%%([^$]+)\$' % '|'.join(identifiers),
-                                r'%(\1)\2',
-                                t,
-                            )
-                            t.replace('$$', '$')
-                            return t
-
-                        # @initialization is a regular template like @media one
-                        # so it should be handled just the same way (see
-                        # https://github.com/ytdl-org/youtube-dl/issues/11605)
-                        if 'initialization' in representation_ms_info:
-                            initialization_template = prepare_template(
-                                'initialization',
-                                # As per [1, 5.3.9.4.2, Table 15, page 54] $Number$ and
-                                # $Time$ shall not be included for @initialization thus
-                                # only $Bandwidth$ remains
-                                ('Bandwidth',),
-                            )
-                            representation_ms_info[
-                                'initialization_url'
-                            ] = initialization_template % {
-                                'Bandwidth': bandwidth,
-                            }
-
-                        def location_key(location):
-                            return (
-                                'url' if re.match(r'^https?://', location) else 'path'
-                            )
-
-                        if (
-                            'segment_urls' not in representation_ms_info
-                            and 'media' in representation_ms_info
-                        ):
-
-                            media_template = prepare_template(
-                                'media', ('Number', 'Bandwidth', 'Time'),
-                            )
-                            media_location_key = location_key(media_template)
-
-                            # As per [1, 5.3.9.4.4, Table 16, page 55] $Number$ and $Time$
-                            # can't be used at the same time
-                            if (
-                                '%(Number' in media_template
-                                and 's' not in representation_ms_info
-                            ):
-                                segment_duration = None
-                                if (
-                                    'total_number' not in representation_ms_info
-                                    and 'segment_duration' in representation_ms_info
-                                ):
-                                    segment_duration = float_or_none(
-                                        representation_ms_info['segment_duration'],
-                                        representation_ms_info['timescale'],
-                                    )
-                                    representation_ms_info['total_number'] = math.ceil(
-                                        float(period_duration) / segment_duration,
-                                    )
-                                representation_ms_info['fragments'] = [
-                                    {
-                                        media_location_key: media_template
-                                        % {
-                                            'Number': segment_number,
-                                            'Bandwidth': bandwidth,
-                                        },
-                                        'duration': segment_duration,
-                                    }
-                                    for segment_number in range(
-                                        representation_ms_info['start_number'],
-                                        representation_ms_info['total_number']
-                                        + representation_ms_info['start_number'],
-                                    )
-                                ]
-                            else:
-                                # $Number*$ or $Time$ in media template with S list available
-                                # Example $Number*$: http://www.svtplay.se/klipp/9023742/stopptid-om-bjorn-borg
-                                # Example $Time$: https://play.arkena.com/embed/avp/v2/player/media/b41dda37-d8e7-4d3f-b1b5-9a9db578bdfe/1/129411 # noqa
-                                representation_ms_info['fragments'] = []
-                                segment_time = 0
-                                segment_d = None
-                                segment_number = representation_ms_info['start_number']
-
-                                def add_segment_url():
-                                    segment_url = media_template % {
-                                        'Time': segment_time,
-                                        'Bandwidth': bandwidth,
-                                        'Number': segment_number,
-                                    }
-                                    representation_ms_info['fragments'].append(
-                                        {
-                                            media_location_key: segment_url,
-                                            'duration': float_or_none(
-                                                segment_d,
-                                                representation_ms_info['timescale'],
-                                            ),
-                                        },
-                                    )
-
-                                for _num, s in enumerate(representation_ms_info['s']):
-                                    segment_time = s.get('t') or segment_time
-                                    segment_d = s['d']
-                                    add_segment_url()
-                                    segment_number += 1
-                                    for _r in range(s.get('r', 0)):
-                                        segment_time += segment_d
-                                        add_segment_url()
-                                        segment_number += 1
-                                    segment_time += segment_d
-                        elif (
-                            'segment_urls' in representation_ms_info
-                            and 's' in representation_ms_info
-                        ):
-                            # No media template
-                            # Example: https://www.youtube.com/watch?v=iXZV5uAYMJI
-                            # or any YouTube dashsegments video
-                            fragments = []
-                            segment_index = 0
-                            timescale = representation_ms_info['timescale']
-                            for s in representation_ms_info['s']:
-                                duration = float_or_none(s['d'], timescale)
-                                for _r in range(s.get('r', 0) + 1):
-                                    segment_uri = representation_ms_info[
-                                        'segment_urls'
-                                    ][segment_index]
-                                    fragments.append(
-                                        {
-                                            location_key(segment_uri): segment_uri,
-                                            'duration': duration,
-                                        },
-                                    )
-                                    segment_index += 1
-                            representation_ms_info['fragments'] = fragments
-                        elif 'segment_urls' in representation_ms_info:
-                            # Segment URLs with no SegmentTimeline
-                            # Example: https://www.seznam.cz/zpravy/clanek/cesko-zasahne-vitr-o-sile-vichrice-muze-byt-i-zivotu-nebezpecny-39091  # noqa
-                            # https://github.com/ytdl-org/youtube-dl/pull/14844
-                            fragments = []
-                            segment_duration = (
-                                float_or_none(
-                                    representation_ms_info['segment_duration'],
-                                    representation_ms_info['timescale'],
-                                )
-                                if 'segment_duration' in representation_ms_info
-                                else None
-                            )
-                            for segment_url in representation_ms_info['segment_urls']:
-                                fragment = {
-                                    location_key(segment_url): segment_url,
-                                }
-                                if segment_duration:
-                                    fragment['duration'] = segment_duration
-                                fragments.append(fragment)
-                            representation_ms_info['fragments'] = fragments
-                        # If there is a fragments key available then we correctly recognized fragmented media.
-                        # Otherwise we will assume unfragmented media with direct access. Technically, such
-                        # assumption is not necessarily correct since we may simply have no support for
-                        # some forms of fragmented media renditions yet, but for now we'll use this fallback.
-                        if 'fragments' in representation_ms_info:
-                            f.update(
-                                {
-                                    # NB: mpd_url may be empty when MPD manifest is parsed from a string
-                                    'url': mpd_url or base_url,
-                                    'fragment_base_url': base_url,
-                                    'fragments': [],
-                                    'protocol': 'http_dash_segments',
-                                },
-                            )
-                            if 'initialization_url' in representation_ms_info:
-                                initialization_url = representation_ms_info[
-                                    'initialization_url'
-                                ]
-                                if not f.get('url'):
-                                    f['url'] = initialization_url
-                                f['fragments'].append(
-                                    {
-                                        location_key(
-                                            initialization_url,
-                                        ): initialization_url,
-                                    },
-                                )
-                            f['fragments'].extend(representation_ms_info['fragments'])
-                        else:
-                            # Assuming direct URL to unfragmented media.
-                            f['url'] = base_url
-
-                        # According to [1, 5.3.5.2, Table 7, page 35] @id of Representation
-                        # is not necessarily unique within a Period thus formats with
-                        # the same `format_id` are quite possible. There are numerous examples
-                        # of such manifests (see https://github.com/ytdl-org/youtube-dl/issues/15111,
-                        # https://github.com/ytdl-org/youtube-dl/issues/13919)
-                        full_info = formats_dict.get(representation_id, {}).copy()
-                        full_info.update(f)
-                        formats.append(full_info)
-                        formats.append(f)
-                    else:
-                        self.report_warning(
-                            'Unknown MIME type %s in DASH manifest' % mime_type,
-                        )
-        return formats
-
     def _fix_thumbnails(self, info):
         """ Fix thumbnails """
         thumbnails = []
@@ -724,7 +298,7 @@ class PictaIE(PictaBaseIE):
     def _real_extract(self, url):
         playlist_id = None
         video_id = self._match_id(url)
-        json_url = API_BASE_URL + 'publicacion/?format=json&slug_url_raw=%s' % video_id
+        json_url = self.API_BASE_URL + 'publicacion/?format=json&slug_url_raw=%s' % video_id
         video = self._download_json(json_url, video_id, 'Downloading video JSON', headers=self._HEADERS)
         info = self._extract_video(video, video_id)
         playlist_channel_id = info.get('playlist_channel_id')
@@ -751,7 +325,7 @@ class PictaIE(PictaBaseIE):
                 % playlist_id,
             )
             return self.url_result(
-                ROOT_BASE_URL + 'medias/' + video_id + '?' + 'playlist=' + playlist_id,
+                self.ROOT_BASE_URL + 'medias/' + video_id + '?' + 'playlist=' + playlist_id,
                 PictaUserPlaylistIE.ie_key(),
                 playlist_id,
             )
@@ -762,7 +336,7 @@ class PictaIE(PictaBaseIE):
                 % playlist_id,
             )
             return self.url_result(
-                ROOT_BASE_URL + 'medias/' + video_id + '?' + 'playlistchannel=' + playlist_id,
+                self.ROOT_BASE_URL + 'medias/' + video_id + '?' + 'playlistchannel=' + playlist_id,
                 PictaChannelPlaylistIE.ie_key(),
                 playlist_id,
             )
@@ -773,11 +347,11 @@ class PictaIE(PictaBaseIE):
 
         # Get season number
         if str(info.get('category')).lower() == 'serie':
-            url_json = API_BASE_URL + 'temporada/?format=json&serie_pelser_id=%s' % str(info.get('series_id'))
+            url_json = self.API_BASE_URL + 'temporada/?format=json&serie_pelser_id=%s' % str(info.get('series_id'))
             seasons = self._download_json(url_json, video_id, 'Downloading seasons JSON', headers=self._HEADERS)
             info.update(traverse_obj(
                 traverse_obj(
-                    seasons, ('results', lambda i, s: str(s.get('id')) == str(info.get('season_id'))),
+                    seasons, ('results', lambda _, s: str(s.get('id')) == str(info.get('season_id'))),
                     get_all=False),
                 {'season_number': ('numero', {int_or_none})}))  # type: ignore
 
@@ -801,13 +375,16 @@ class PictaIE(PictaBaseIE):
             raise ExtractorError('This video is paid only', expected=True)
 
         if src_ext.startswith('m3u'):
-            formats.extend(
-                self._extract_m3u8_formats(manifest_url, video_id, 'mp4', m3u8_id='hls'),
-            )
+            fmts, _ = self._extract_m3u8_formats_and_subtitles(manifest_url, video_id)
+            formats.extend(fmts)
         elif src_ext == 'mpd':
-            formats.extend(
-                self._extract_mpd_formats(manifest_url, video_id, mpd_id='dash'),
-            )
+            try:
+                fmts, _ = self._extract_mpd_formats_and_subtitles(manifest_url, video_id, mpd_id='dash')
+            except Exception:
+                pass
+                m3u8_url = urljoin(base_url(manifest_url), 'master.m3u8')
+                fmts, _ = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id)
+            formats.extend(fmts)
 
         if not formats:
             raise ExtractorError('Cannot find video formats', expected=True)
@@ -837,7 +414,7 @@ class PictaIE(PictaBaseIE):
 
 # noinspection PyAbstractClass
 class PictaPlaylistIE(PictaIE):
-    API_PLAYLIST_ENDPOINT = API_BASE_URL + 'lista_reproduccion_canal/'
+    API_PLAYLIST_ENDPOINT = PictaIE.API_BASE_URL + 'lista_reproduccion_canal/'
     IE_NAME = 'picta:playlist'
     IE_DESC = 'Picta playlist'
     _VALID_URL = (
@@ -882,7 +459,7 @@ class PictaPlaylistIE(PictaIE):
         for video in playlist_entries:
             video_id = video.get('id')
             video_url = (
-                ROOT_BASE_URL
+                self.ROOT_BASE_URL
                 + 'medias/'
                 + video.get('slug_url'))
             video_title = video.get('nombre')
@@ -894,7 +471,7 @@ class PictaPlaylistIE(PictaIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         playlist_id = self._match_playlist_id(url)
-        json_slug_url = API_BASE_URL + 'publicacion/?format=json&slug_url_raw=%s' % video_id
+        json_slug_url = self.API_BASE_URL + 'publicacion/?format=json&slug_url_raw=%s' % video_id
 
         video = traverse_obj(self._download_json(
             json_slug_url, video_id, 'Downloading video JSON', headers=self._HEADERS),
@@ -968,7 +545,7 @@ class PictaChannelPlaylistIE(PictaPlaylistIE):
 
 # noinspection PyAbstractClass
 class PictaUserPlaylistIE(PictaPlaylistIE):
-    API_PLAYLIST_ENDPOINT = API_BASE_URL + 'lista_reproduccion/'
+    API_PLAYLIST_ENDPOINT = PictaIE.API_BASE_URL + 'lista_reproduccion/'
     IE_NAME = 'picta:user:playlist'
     IE_DESC = 'Picta user playlist'
 
@@ -996,7 +573,7 @@ class PictaUserPlaylistIE(PictaPlaylistIE):
         thumbnail = None
         thumbnail = traverse_obj(
             self._download_json(
-                API_BASE_URL + 'usuario/me/?format=json',
+                self.API_BASE_URL + 'usuario/me/?format=json',
                 video_id=None, note='Fetching user avatar',
                 errnote=False, fatal=False, headers=self._HEADERS),
             ('avatar'), {url_or_none})
@@ -1031,7 +608,7 @@ class PictaSearchIE(PictaIE, SearchInfoExtractor):
         for video in results:
             video_id = video.get('id')
             video_url = (
-                ROOT_BASE_URL
+                self.ROOT_BASE_URL
                 + 'medias/'
                 + video.get('slug_url')
                 + '/?playlist=pictasearch')
@@ -1043,10 +620,12 @@ class PictaSearchIE(PictaIE, SearchInfoExtractor):
 
     def _search_series_results(self, query):
         serie_search = self._download_json(
-            API_BASE_URL + 'serie/', query,
+            self.API_BASE_URL + 'serie/', query,
             note=f'Searching serie: {query}',
             query={
                 'format': 'json',
+                'genero_raw_exclude': 'Anime__Novela__Infantil__Show__Deportivo__Videojuego__Dorama',
+                'ordering': '-last_update',
                 'nombre__contains': query},
             headers=self._HEADERS)
 
@@ -1057,19 +636,19 @@ class PictaSearchIE(PictaIE, SearchInfoExtractor):
 
         serie_id = traverse_obj(traverse_obj(results, 0), ('pelser_id'), {int_or_none})
         seasons = self._download_json(
-            API_BASE_URL + 'temporada/', query,
+            self.API_BASE_URL + 'temporada/', query,
             note=f'Downloading serie id: {serie_id}',
             query={'serie_pelser_id': serie_id, 'format': 'json'},
             headers=self._HEADERS)
         seasons_id = [*traverse_obj(
-            seasons, ('results', lambda i, s: s.get('id'), ('id')),
+            seasons, ('results', lambda _, s: s.get('id'), ('id')),
             get_all=True)]  # type: ignore
 
         for s in range(len(seasons_id)):
             season = seasons_id[s]
             for i in itertools.count(1):
                 serie_response = self._download_json(
-                    API_BASE_URL + 'publicacion/', query,
+                    self.API_BASE_URL + 'publicacion/', query,
                     note=f'Downloading season id: {season} page: {i}',
                     query={
                         'temporada_id': season,
@@ -1098,7 +677,7 @@ class PictaSearchIE(PictaIE, SearchInfoExtractor):
 
         for i in itertools.count(1):
             search_response = self._download_json(
-                API_BASE_URL + 'publicacion/', query,
+                self.API_BASE_URL + 'publicacion/', query,
                 note=f'Downloading search page: {i}',
                 query={
                     'page': i,
