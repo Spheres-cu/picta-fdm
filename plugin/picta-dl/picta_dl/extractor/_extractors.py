@@ -27,7 +27,6 @@ from .youtube import (  # Youtube is moved to the top to improve performance
 # isort: on
 
 from .commonprotocols import (
-    MmsIE,
     RtmpIE,
     ViewSourceIE,
 )
