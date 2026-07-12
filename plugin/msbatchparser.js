@@ -7,7 +7,8 @@ var msBatchVideoParser = (function() {
 
         parse: function(obj) {
             let customArg = [];
-            customArg = msAbstractParser.isYoutubeSource(obj.url) ? ["--flat-playlist", "-I", "1:1000"] : ["--flat-playlist"];
+            let isYoutubeUrl = UrlSource(obj.url).isYoutubeUrl || msAbstractParser.isPossiblySupportedSource(obj);
+            customArg = isYoutubeUrl ? ["--flat-playlist", "-I", "1:1000"] : ["--flat-playlist"];
             return msAbstractParser.parse(obj, customArg)
             .then(function(res) {
                 return new Promise(function(resolve, reject) {
@@ -34,7 +35,7 @@ var msBatchVideoParser = (function() {
                         if (res.entries && Array.isArray(res.entries)) {
                             if (res.entries.length > 0) {
                                 playlist = res;
-                                if (msAbstractParser.isYoutubeSource(obj.url)) {
+                                if (UrlSource(obj.url).isYoutubeUrl) {
                                     entries = parseYTentries(res.entries)
                                     playlist.entries = entries;
                                 }

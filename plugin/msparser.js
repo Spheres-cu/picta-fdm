@@ -5,7 +5,8 @@ var msParser = (function() {
 
         parse: function(obj) {
             let customArg = [];
-            if (msAbstractParser.isYoutubeSource(obj.url)) {
+            let isYoutubeUrl = UrlSource(obj.url).isYoutubeUrl || msAbstractParser.isPossiblySupportedSource(obj);
+            if (isYoutubeUrl) {
                 customArg.push(
                     "--no-playlist", "--sub-format", "srt/vtt/best",
                     "--extractor-args", "youtube:skip=auto-gened_subs,translated_subs"
@@ -28,8 +29,8 @@ var msParser = (function() {
                         myObj.upload_date = converted.iso8601;
                     }
 
-                    if (!msAbstractParser.isYoutubeSource(url)) {
-                        const categories = [/(?:Película|Documental|Video)/i]
+                    if (!UrlSource(url).isYoutubeUrl) {
+                        const categories = [/(?:Película|Documental|Video|Audiovisual|Shorts)/i]
                         if (myObj.category && categories.some(pattern => pattern.test(myObj.category)) && myObj.release_year) {
                             let year = String(myObj.release_year);
                             let title = String(myObj.title);
