@@ -91,7 +91,7 @@ function parseErrorMessage(log, options = {}) {
 
   // Remove the ERROR prefix with service and identifier
   if (removePrefix) {
-    message = message.replace(/^ERROR:\s*\[[^\]]+\]\s*[^:]+:\s*/, '');
+    message = message.replace(/\bERROR:\s*\[[^\]]+\]\s*[^:]+:\s*/, '');
   }
 
   // Clean up

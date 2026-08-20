@@ -48,7 +48,7 @@ var msAbstractParser = (function() {
 
                     if (obj.exitCode !== 0) {
                         try {
-                            var PluginError = /^ERROR:\s*(\[(?:picta(?::channel:playlist|:user:playlist)?|youtube|facebook)\])?/i.test(obj.errorOutput);
+                            var PluginError = /\bERROR:\s*(\[(?:picta(?::channel:playlist|:user:playlist)?|youtube|facebook)\])?/i.test(obj.errorOutput);
                             console.log("Plugin Error:", PluginError);
                             if (PluginError){
                                 let ErrorMessage = isPlaylist ? parseErrorMessage(obj.errorOutput, {removePrefix: false}) : parseErrorMessage(obj.errorOutput);
