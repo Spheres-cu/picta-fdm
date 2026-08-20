@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+include AUTHORS
+include ChangeLog
+include picta-dl.bash-completion
+include picta-dl.fish
+include picta-dl.1
+recursive-include docs Makefile conf.py *.rst
+recursive-include test *

@@ -1,3 +1,14 @@
+"""""" # start delvewheel patch
+def _delvewheel_patch_1_13_0():
+    import os
+    if os.path.isdir(libs_dir := os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, 'curl_cffi.libs'))):
+        os.add_dll_directory(libs_dir)
+
+
+_delvewheel_patch_1_13_0()
+del _delvewheel_patch_1_13_0
+# end delvewheel patch
+
 __all__ = [
     "Curl",
     "AsyncCurl",
@@ -12,8 +23,10 @@ __all__ = [
     "CurlSslVersion",
     "CurlWsFlag",
     "config_warnings",
+    "Fingerprint",
+    "FingerprintManager",
+    "get_fingerprint",
     "ffi",
-    "is_pro",
     "lib",
     "Session",
     "AsyncSession",
@@ -39,6 +52,8 @@ __all__ = [
     "WebSocketRetryStrategy",
     "WsCloseCode",
     "ExtraFingerprints",
+    "CacheBackend",
+    "FileCacheBackend",
     "CookieTypes",
     "HeaderTypes",
     "ProxySpec",
@@ -69,9 +84,11 @@ from .requests import (
     AsyncWebSocket,
     BrowserType,
     BrowserTypeLiteral,
+    CacheBackend,
     Cookies,
     CookieTypes,
     ExtraFingerprints,
+    FileCacheBackend,
     Headers,
     HeaderTypes,
     ProxySpec,
@@ -95,6 +112,7 @@ from .requests import (
     request,
 )
 
-from .utils import config_warnings, is_pro
+from .utils import config_warnings
+from .fingerprints import Fingerprint, FingerprintManager, get_fingerprint
 
 config_warnings(on=False)

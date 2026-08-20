@@ -1,0 +1,17 @@
+# Nuitka
+
+## Build Picta-DL with MinGW64[MSYS2] (cwd picta-dl)
+
+python -m venv env
+source ./env/bin/activate
+python -m pip install nuitka
+
+# Build
+# python -m nuitka --mingw64 --follow-imports --assume-yes-for-downloads picta_dl/__main__.py
+
+# StandAlone
+python -m nuitka --standalone --mingw64 --assume-yes-for-downloads --windows-icon-from-ico=./assets/picta-dl.ico  --windows-company-name=Picta-DL --windows-product-name=picta-dl --windows-product-version=2021.1.25.0 --windows-file-description="Picta video downloader" picta_dl/__main__.py 
+
+# OneFile
+python -m nuitka --onefile --mingw64 --assume-yes-for-downloads --windows-icon-from-ico=./assets/picta-dl.ico  --windows-company-name=Picta-DL --windows-product-name=picta-dl --windows-product-version=2021.1.25.0 --windows-file-description="Picta video downloader" picta_dl/__main__.py 
+

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MPD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="urn:mpeg:dash:schema:mpd:2011"
+	xmlns:xlink="http://www.w3.org/1999/xlink"
+	xsi:schemaLocation="urn:mpeg:DASH:schema:MPD:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd"
+	profiles="urn:mpeg:dash:profile:isoff-live:2011"
+	type="static"
+	mediaPresentationDuration="PT1M15.6S"
+	minBufferTime="PT11.2S">
+	<ProgramInformation>
+	</ProgramInformation>
+	<Period id="0" start="PT0.0S">
+		<AdaptationSet id="0" contentType="video" segmentAlignment="true" bitstreamSwitching="true" lang="eng">
+			<Representation id="0" mimeType="video/mp4" codecs="avc1.64081f" bandwidth="1000000" width="1280" height="720" frameRate="30000/1001">
+				<BaseURL>picta-video0-1000000</BaseURL>
+				<SegmentList timescale="1000000" duration="5605600" startNumber="1">
+					<Initialization range="0-787" />
+					<SegmentURL mediaRange="788-512637" />
+					<SegmentURL mediaRange="512638-1203973" />
+					<SegmentURL mediaRange="1203974-2563951" />
+					<SegmentURL mediaRange="2563952-3332165" />
+					<SegmentURL mediaRange="3332166-4251947" />
+					<SegmentURL mediaRange="4251948-5394772" />
+					<SegmentURL mediaRange="5394773-6262781" />
+					<SegmentURL mediaRange="6262782-6827277" />
+					<SegmentURL mediaRange="6827278-7580233" />
+					<SegmentURL mediaRange="7580234-8438990" />
+					<SegmentURL mediaRange="8438991-9380519" />
+					<SegmentURL mediaRange="9380520-10562789" />
+					<SegmentURL mediaRange="10562790-11396551" />
+					<SegmentURL mediaRange="11396552-11503286" />
+				</SegmentList>
+			</Representation>
+			<Representation id="1" mimeType="video/mp4" codecs="avc1.64081f" bandwidth="400000" width="854" height="480" frameRate="30000/1001">
+				<BaseURL>picta-video1-400000</BaseURL>
+				<SegmentList timescale="1000000" duration="5605600" startNumber="1">
+					<Initialization range="0-787" />
+					<SegmentURL mediaRange="788-240009" />
+					<SegmentURL mediaRange="240010-533438" />
+					<SegmentURL mediaRange="533439-1109294" />
+					<SegmentURL mediaRange="1109295-1434672" />
+					<SegmentURL mediaRange="1434673-1829002" />
+					<SegmentURL mediaRange="1829003-2311129" />
+					<SegmentURL mediaRange="2311130-2666847" />
+					<SegmentURL mediaRange="2666848-2908541" />
+					<SegmentURL mediaRange="2908542-3218332" />
+					<SegmentURL mediaRange="3218333-3575332" />
+					<SegmentURL mediaRange="3575333-3958250" />
+					<SegmentURL mediaRange="3958251-4420890" />
+					<SegmentURL mediaRange="4420891-4731204" />
+					<SegmentURL mediaRange="4731205-4783020" />
+				</SegmentList>
+			</Representation>
+			<Representation id="2" mimeType="video/mp4" codecs="avc1.64081e" bandwidth="300000" width="640" height="360" frameRate="30000/1001">
+				<BaseURL>picta-video2-300000</BaseURL>
+				<SegmentList timescale="1000000" duration="5605600" startNumber="1">
+					<Initialization range="0-787" />
+					<SegmentURL mediaRange="788-192180" />
+					<SegmentURL mediaRange="192181-393519" />
+					<SegmentURL mediaRange="393520-825526" />
+					<SegmentURL mediaRange="825527-1072443" />
+					<SegmentURL mediaRange="1072444-1377324" />
+					<SegmentURL mediaRange="1377325-1756907" />
+					<SegmentURL mediaRange="1756908-2033912" />
+					<SegmentURL mediaRange="2033913-2223471" />
+					<SegmentURL mediaRange="2223472-2464669" />
+					<SegmentURL mediaRange="2464670-2742476" />
+					<SegmentURL mediaRange="2742477-3036643" />
+					<SegmentURL mediaRange="3036644-3391952" />
+					<SegmentURL mediaRange="3391953-3637406" />
+					<SegmentURL mediaRange="3637407-3682339" />
+				</SegmentList>
+			</Representation>
+			<Representation id="3" mimeType="video/mp4" codecs="avc1.640815" bandwidth="200000" width="426" height="240" frameRate="30000/1001">
+				<BaseURL>picta-video3-200000</BaseURL>
+				<SegmentList timescale="1000000" duration="5605600" startNumber="1">
+					<Initialization range="0-787" />
+					<SegmentURL mediaRange="788-135134" />
+					<SegmentURL mediaRange="135135-261382" />
+					<SegmentURL mediaRange="261383-560324" />
+					<SegmentURL mediaRange="560325-726511" />
+					<SegmentURL mediaRange="726512-940927" />
+					<SegmentURL mediaRange="940928-1203077" />
+					<SegmentURL mediaRange="1203078-1399282" />
+					<SegmentURL mediaRange="1399283-1534810" />
+					<SegmentURL mediaRange="1534811-1702968" />
+					<SegmentURL mediaRange="1702969-1897973" />
+					<SegmentURL mediaRange="1897974-2103014" />
+					<SegmentURL mediaRange="2103015-2354169" />
+					<SegmentURL mediaRange="2354170-2542718" />
+					<SegmentURL mediaRange="2542719-2579386" />
+				</SegmentList>
+			</Representation>
+			<Representation id="4" mimeType="video/mp4" codecs="avc1.64080c" bandwidth="100000" width="256" height="144" frameRate="30000/1001">
+				<BaseURL>picta-video4-100000</BaseURL>
+				<SegmentList timescale="1000000" duration="5605600" startNumber="1">
+					<Initialization range="0-786" />
+					<SegmentURL mediaRange="787-77908" />
+					<SegmentURL mediaRange="77909-147534" />
+					<SegmentURL mediaRange="147535-308047" />
+					<SegmentURL mediaRange="308048-405048" />
+					<SegmentURL mediaRange="405049-525551" />
+					<SegmentURL mediaRange="525552-656469" />
+					<SegmentURL mediaRange="656470-768735" />
+					<SegmentURL mediaRange="768736-852525" />
+					<SegmentURL mediaRange="852526-954593" />
+					<SegmentURL mediaRange="954594-1066810" />
+					<SegmentURL mediaRange="1066811-1181774" />
+					<SegmentURL mediaRange="1181775-1315248" />
+					<SegmentURL mediaRange="1315249-1421389" />
+					<SegmentURL mediaRange="1421390-1448278" />
+				</SegmentList>
+			</Representation>
+		</AdaptationSet>
+		<AdaptationSet id="1" contentType="audio" segmentAlignment="true" bitstreamSwitching="true" lang="eng">
+			<Representation id="5" mimeType="audio/mp4" codecs="mp4a.40.2" bandwidth="128000" audioSamplingRate="44100">
+				<AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2" />
+				<BaseURL>picta-video5-128000</BaseURL>
+				<SegmentList timescale="1000000" duration="5605600" startNumber="1">
+					<Initialization range="0-740" />
+					<SegmentURL mediaRange="741-124003" />
+					<SegmentURL mediaRange="124004-246162" />
+					<SegmentURL mediaRange="246163-368082" />
+					<SegmentURL mediaRange="368083-490096" />
+					<SegmentURL mediaRange="490097-611771" />
+					<SegmentURL mediaRange="611772-733942" />
+					<SegmentURL mediaRange="733943-855744" />
+					<SegmentURL mediaRange="855745-977653" />
+					<SegmentURL mediaRange="977654-1099713" />
+					<SegmentURL mediaRange="1099714-1221414" />
+					<SegmentURL mediaRange="1221415-1343730" />
+					<SegmentURL mediaRange="1343731-1465388" />
+					<SegmentURL mediaRange="1465389-1587099" />
+					<SegmentURL mediaRange="1587100-1647178" />
+				</SegmentList>
+			</Representation>
+		</AdaptationSet>
+	</Period>
+</MPD>

@@ -1,0 +1,23 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Main file",
+            "type": "python",
+            "request": "launch",
+            "envFile": "${workspaceFolder}/.env",
+            "program": "${workspaceFolder}/picta_dl/__main__.py",
+            "args": ["-s",
+                "--username", "${env:USER}",
+                "--password", "${env:PASSWORD}",
+                "--playlist-items", "2",
+                "https://www.picta.cu/medias/uso-eficiente-datos-2021-04-21-08-42-41-766550?playlist=3032"
+                //"https://www.youtube.com/watch?v=lJjAGZq18_A"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}

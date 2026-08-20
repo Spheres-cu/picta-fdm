@@ -1,0 +1,283 @@
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "pr": true,
+            "pd": true,
+            "id": 55685,
+            "nombre": "Monarch: el legado de los monstruos S02E01",
+            "tipo": "publicacion",
+            "slug_url": "monarch-legado-monstruos-s02e01-7fu48wnjb6jrphoq",
+            "url_imagen": "https://www.picta.cu/imagen/thumbnail_1772242392310.jpg",
+            "fecha_creacion": "2026-02-28T01:34:54.145590+00:00",
+            "descripcion": "Tras sobrevivir al ataque de Godzilla en San Francisco, un espeluznante secreto vuelve a sobrecoger a Cate. En medio de amenazas monstruosas, se embarca en una aventura por todo el mundo para descubrir la verdad sobre su familia y la misteriosa organización conocida como Monarca.",
+            "fecha_publicado": "2026-02-28T01:34:54.652232+00:00",
+            "publicado": true,
+            "duracion": "53:38",
+            "url_manifiesto": "https://videos.picta.cu/videos/78dbfe09aa74490488b136e4e5767141/manifest.mpd",
+            "cantidad_visitas": 1584,
+            "premium": false,
+            "url_descarga": "",
+            "convertido": true,
+            "descarga": "{\"low\":\"145M\", \"medium\":\"226M\", \"high\":\"729M\"}",
+            "descargable": true,
+            "hd": true,
+            "url_subtitulo": "https://videos.picta.cu/sub/78dbfe09aa74490488b136e4e5767141",
+            "precios": [
+            ],
+            "cantidad_reproducciones": 1092,
+            "cantidad_me_gusta": 52,
+            "cantidad_no_me_gusta": 0,
+            "cantidad_comentarios": 6,
+            "cantidad_descargas": 0,
+            "eliminado": false,
+            "canal": {
+                "nombre": "D'Series",
+                "slug_url": "d-series-sk0sgekcf5nfwwbp",
+                "id": 3540,
+                "alias": "D'Series",
+                "publicado": true,
+                "eliminado": false,
+                "usuario_id": 871,
+                "internacional": false,
+                "donar": false,
+                "seller": {
+                },
+                "usuario": {
+                    "id": 871,
+                    "username": "Hellsing"
+                },
+                "usuarios_asociados": [
+                    {
+                        "id": 14632
+                    },
+                    {
+                        "id": 138469
+                    },
+                    {
+                        "id": 113166
+                    }
+                ],
+                "url_avatar": "https://www.picta.cu/avatar/img_Lmyqy6g.jpeg",
+                "prioridad": 1,
+                "cantidad_suscripciones": 68924,
+                "cantidad_suscripciones_planes": 0
+            },
+            "cantidad_vistas_ahora": 0,
+            "score": 0.0,
+            "mostrar_chat": false,
+            "mostrar_comentarios": true,
+            "only_subs": false,
+            "planes": [
+            ],
+            "clasificacion": "18+",
+            "categoria": {
+                "id": 52630,
+                "tipologia": {
+                    "id": 5,
+                    "nombre": "Serie",
+                    "modelo": "capitulo"
+                },
+                "capitulo": {
+                    "id": 52630,
+                    "numero": 1,
+                    "temporada": {
+                        "id": 2455,
+                        "cantidad_capitulos": 6,
+                        "nombre": "Temporada 2",
+                        "canal": {
+                            "id": 3540,
+                            "nombre": "D'Series",
+                            "slug_url": "d-series-sk0sgekcf5nfwwbp",
+                            "usuario": {
+                                "id": 871,
+                                "username": "Hellsing"
+                            },
+                            "usuarios_asociados": [
+                                {
+                                    "id": 14632
+                                },
+                                {
+                                    "id": 138469
+                                },
+                                {
+                                    "id": 113166
+                                }
+                            ]
+                        },
+                        "serie": {
+                            "pelser_id": 1570,
+                            "ano": 2023,
+                            "pais": "Canadá",
+                            "imagen_secundaria": "https://www.picta.cu/imagen/img_pGunwVl.jpeg",
+                            "cantidad_temporadas": 1,
+                            "cantidad_capitulos": 17,
+                            "nombre": "Monarch: el legado de los monstruos",
+                            "last_update": "2026-04-03T04:09:44.541945+00:00",
+                            "prioridad": 1,
+                            "productora": [
+                                {
+                                    "id": 239,
+                                    "tipo": "productora",
+                                    "nombre": "Apple TV+"
+                                },
+                                {
+                                    "id": 1557,
+                                    "tipo": "productora",
+                                    "nombre": "Discovery."
+                                },
+                                {
+                                    "id": 94,
+                                    "tipo": "productora",
+                                    "nombre": "Warner Bros"
+                                }
+                            ],
+                            "director": [
+                                {
+                                    "id": 8336,
+                                    "nombre": "Chris Black"
+                                }
+                            ],
+                            "guion": [
+                                {
+                                    "id": 8336,
+                                    "nombre": "Chris Black"
+                                }
+                            ],
+                            "musica": [
+                                {
+                                    "id": 1022,
+                                    "nombre": "Desconocido"
+                                }
+                            ],
+                            "fotografia": [
+                                {
+                                    "id": 1769,
+                                    "nombre": "Chris Seager"
+                                }
+                            ],
+                            "reparto": [
+                                {
+                                    "id": 8341,
+                                    "nombre": "Anders Holm"
+                                },
+                                {
+                                    "id": 8337,
+                                    "nombre": "Anna Sawai"
+                                },
+                                {
+                                    "id": 8340,
+                                    "nombre": "Elisa Lasowski"
+                                },
+                                {
+                                    "id": 6975,
+                                    "nombre": "Joe Tippett"
+                                },
+                                {
+                                    "id": 7974,
+                                    "nombre": "Kiersey Clemons"
+                                },
+                                {
+                                    "id": 3659,
+                                    "nombre": "Kurt Russell"
+                                },
+                                {
+                                    "id": 8338,
+                                    "nombre": "Mari Yamamoto"
+                                },
+                                {
+                                    "id": 8339,
+                                    "nombre": "Ren Watabe"
+                                },
+                                {
+                                    "id": 3230,
+                                    "nombre": "Wyatt Russell"
+                                }
+                            ],
+                            "canal": {
+                                "id": 3540,
+                                "nombre": "D'Series",
+                                "slug_url": "d-series-sk0sgekcf5nfwwbp",
+                                "usuario": {
+                                    "id": 871,
+                                    "username": "Hellsing"
+                                },
+                                "usuarios_asociados": [
+                                    {
+                                        "id": 14632
+                                    },
+                                    {
+                                        "id": 138469
+                                    },
+                                    {
+                                        "id": 113166
+                                    }
+                                ]
+                            },
+                            "genero": [
+                                {
+                                    "id": 5,
+                                    "nombre": "Acción"
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "subtitulos": [
+                "und"
+            ],
+            "palabraClave": [
+                "Acción",
+                "Apple TV",
+                "Aventuras",
+                "Fantastico",
+                "Monstruos",
+                "Serie"
+            ],
+            "palabraClave_data": [
+                {
+                    "id": 34,
+                    "palabra": "Acción"
+                },
+                {
+                    "id": 18111,
+                    "palabra": "Apple TV"
+                },
+                {
+                    "id": 36,
+                    "palabra": "Aventuras"
+                },
+                {
+                    "id": 13321,
+                    "palabra": "Fantastico"
+                },
+                {
+                    "id": 8448,
+                    "palabra": "Monstruos"
+                },
+                {
+                    "id": 22,
+                    "palabra": "Serie"
+                }
+            ],
+            "usuario": {
+                "username": "leodanis"
+            },
+            "lista_reproduccion_canal": [
+                {
+                    "id": 56161,
+                    "nombre": "Monarch: El legado de los monstruos - Temp 2",
+                    "publicado": true
+                }
+            ],
+            "audios": [
+                "spa",
+                "eng"
+            ],
+            "tiempo_creacion": "1 mes"
+        }
+    ]
+}
