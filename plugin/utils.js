@@ -115,6 +115,25 @@ function parseErrorMessage(log, options = {}) {
   return message;
 }
 
+function AdditionalActionsRequired (ErrorMessage) {
+  const PictaError = [
+    /This video is only available for registered users/i
+  ]
+
+  const YoutubeError = [
+    /Sign in to confirm your age/i,
+    /Sign in to confirm.*not a bot/i
+  ]
+
+  const IsPictaError = PictaError.some(pattern => pattern.test(ErrorMessage))
+  const IsYoutubeError = YoutubeError.some(pattern => pattern.test(ErrorMessage))
+
+  return {
+    IsPictaError: IsPictaError,
+    IsYoutubeError: IsYoutubeError
+  }
+}
+
 function UrlSource(url){
   const SupportedSource = [
     /^https?:\/\/(?:www\.)?picta\.cu\/(?:medias|movie|documental|musical|short)\/(?<id>[\da-z-]+)(?:\?playlist=(?<playlist_id>[\da-z-]+))?/i,
