@@ -27,9 +27,13 @@ var msAbstractParser = (function() {
 
             if (AllowWbCookies && isYoutubeUrl) {
                 let osType = detectOSFromUserAgent(userAgent);
-                if (osType !== "Unknown" && isSupportedBrowser(WebBrowser))
-                    if (osType === "Linux" || WebBrowser.toLowerCase() === "firefox")
+                if (osType !== "Unknown" && isSupportedBrowser(WebBrowser)) {
+                    if (osType === "Linux" || WebBrowser.toLowerCase() === "firefox") {
                         args.push('--cookies-from-browser', WebBrowser);
+                    } else {
+                        args.push('--cookies-from-browser', 'firefox');
+                    }
+                }
             }
 
             if (customArgs.length) {
@@ -52,6 +56,22 @@ var msAbstractParser = (function() {
                             console.log("Plugin Error:", PluginError);
                             if (PluginError){
                                 let ErrorMessage = isPlaylist ? parseErrorMessage(obj.errorOutput, {removePrefix: false}) : parseErrorMessage(obj.errorOutput);
+                                let RequiredAdditionalAction = AdditionalActionsRequired(ErrorMessage);
+                                let IsPictaError = RequiredAdditionalAction.IsPictaError;
+                                let IsYoutubeError = RequiredAdditionalAction.IsYoutubeError;
+                                let AddtionalErrorMessage = ""
+
+                                if (IsPictaError) {
+                                    AddtionalErrorMessage = "Picta-FDM:<br><font color='red'>Necesita configurar sus credenciales de acceso a Picta, vea:</font><br> \
+                                    <a href='https://github.com/Spheres-cu/picta-fdm/blob/main/README.es.md#instalaci%C3%B3n'> \
+                                    Gu&iacute;a de Instalaci&oacute;n</a>";
+                                } else if (IsYoutubeError) {
+                                    AddtionalErrorMessage = "Picta-FDM:<br><font color='red'>You need allow add-ons use browser cookies.</font> <br> \
+                                    Please initiate session in YouTube with a compatible browser like Firefox, see:<br> \
+                                    <a href='https://github.com/Spheres-cu/picta-fdm#allow-add-ons-use-browser-cookies-for-yt-downloads'> \
+                                    Allow add-ons use browser cookies (for YT downloads)</a>";
+                                }
+        
                                 reject({
                                     error: ErrorMessage,
                                     isParseError: false
