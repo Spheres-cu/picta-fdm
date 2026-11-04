@@ -43,15 +43,73 @@ Basado en [picta-dl](https://github.com/oleksis/picta-dl) descargador de videos 
     -p <tu_contraseña_picta>
     ```
 
-    **<ins>¡Nota importante!</ins>**
+    ~~Si configuró una credencial *.netrc*, **elimínela del archivo de configuración** debido a una vulnerabilidad de seguridad [CVE-2026-26331](https://nvd.nist.gov/vuln/detail/CVE-2026-26331) ya no se recomienda.~~
 
-    Si configuró una credencial *.netrc*, **elimínela del archivo de configuración** debido a una vulnerabilidad de seguridad [CVE-2026-26331](https://nvd.nist.gov/vuln/detail/CVE-2026-26331) ya no se recomienda.
+    **Ó**
+
+    **<ins>Recomendado</ins>**
+
+    *Usar las credenciales de .netrc:*
+
+    *Crear el archivo .netrc en ```%USERPROFILE%``` (Windows) y añadir:*
+
+    ```text
+    machine <extractor> login <usuario> password <contraseña>
+    ```
+
+    *Donde:*
+
+    ```text
+    - extractor = picta
+
+    - login = tu usuario de picta
+
+    - password = tu contraseña de picta
+    ```
+
+    *Y solamente añadir a config:*
+
+    ```text
+    --netrc
+    ```
+
+    *Este script puede crear el archivo con las credenciales:*
+
+    ```bash
+    @echo off
+    setlocal enabledelayedexpansion
+
+    set NETRC_FILE=%USERPROFILE%\.netrc
+
+    echo Creando archivo .netrc en %USERPROFILE%
+    echo.
+    set /p "login=Entre login(usuario de picta): "
+
+    for /f "delims=" %%p in ('powershell -Command "$password = Read-Host -AsSecureString 'Entre password'; $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password); [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)"') do set "password=%%p"
+
+    set "password=!password: =!"
+    set "password=!password: =!"
+
+    echo|set /p="machine picta login !login! password !password!" > "%NETRC_FILE%"
+
+    echo.
+    echo El archivo .netrc ha sido creado satisfactoriamente en: %NETRC_FILE%
+    echo.
+    echo Contenido de .netrc:
+    type "%NETRC_FILE%"
+
+    set "password="
+    ```
+
+    *Crea un archivo, por ejemplo: "crear_archivo_netrc.cmd", pega el código anterior y ejecútalo en una consola de Windows.*
+
+    *En Linux, el procedimiento es el mismo, pero en el archivo ```~/.netrc``` puedes crear las credenciales.*
 
 3. Instale picta-fdm.fda desde el menú *Complementos* de FDM con la opción: *Instalar complemento desde archivo*.
 
 ## Requisitos
 
-1. Python 3.10 o superior
+1. Python 3.11 o superior
 
     > Si no tiene Python instalado en su sistema, Free Download Manager le da la opción de instalarlo.
 
