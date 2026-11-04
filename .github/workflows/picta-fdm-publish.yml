@@ -17,6 +17,7 @@ jobs:
         command: compress
         source: ./plugin
         format: zip
+        dest: ./plugin
         includeRoot: 'false'
         
     - name: Rename plugin
