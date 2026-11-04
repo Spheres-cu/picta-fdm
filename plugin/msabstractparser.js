@@ -74,7 +74,8 @@ var msAbstractParser = (function() {
         
                                 reject({
                                     error: ErrorMessage,
-                                    isParseError: false
+                                    isParseError: false,
+                                    isAdditionalActionsRequiredError: IsPictaError || IsYoutubeError
                                 });
                             }
                         } catch (e) {
