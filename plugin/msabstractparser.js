@@ -73,7 +73,7 @@ var msAbstractParser = (function() {
                                 }
         
                                 reject({
-                                    error: ErrorMessage,
+                                    error: AddtionalErrorMessage ? AddtionalErrorMessage : ErrorMessage,
                                     isParseError: false,
                                     isAdditionalActionsRequiredError: IsPictaError || IsYoutubeError
                                 });
