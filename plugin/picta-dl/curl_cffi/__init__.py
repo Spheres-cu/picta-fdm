@@ -1,27 +1,34 @@
 """""" # start delvewheel patch
-def _delvewheel_patch_1_13_0():
+def _delvewheel_patch_1_13_1():
     import os
     if os.path.isdir(libs_dir := os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, 'curl_cffi.libs'))):
         os.add_dll_directory(libs_dir)
 
 
-_delvewheel_patch_1_13_0()
-del _delvewheel_patch_1_13_0
+_delvewheel_patch_1_13_1()
+del _delvewheel_patch_1_13_1
 # end delvewheel patch
 
 __all__ = [
     "Curl",
     "AsyncCurl",
     "CurlMime",
+    "CurlShare",
     "CurlError",
     "CurlInfo",
     "CurlOpt",
     "CurlMOpt",
     "CurlECode",
     "CurlHttpVersion",
+    "CurlProxyType",
     "CurlFollow",
     "CurlSslVersion",
     "CurlWsFlag",
+    "CurlWsOption",
+    "CurlShareOpt",
+    "CurlLockData",
+    "CurlLockAccess",
+    "CurlShareCode",
     "config_warnings",
     "Fingerprint",
     "FingerprintManager",
@@ -72,12 +79,18 @@ from .const import (
     CurlFollow,
     CurlHttpVersion,
     CurlInfo,
+    CurlLockAccess,
+    CurlLockData,
     CurlMOpt,
     CurlOpt,
+    CurlProxyType,
+    CurlShareCode,
+    CurlShareOpt,
     CurlSslVersion,
     CurlWsFlag,
+    CurlWsOption,
 )
-from .curl import Curl, CurlError, CurlMime
+from .curl import Curl, CurlError, CurlMime, CurlShare
 
 from .requests import (
     AsyncSession,
